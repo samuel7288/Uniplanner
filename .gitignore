@@ -1,0 +1,22 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+
+backend/dist
+frontend/dist
+
+coverage
+.vscode
+.idea
+.DS_Store
+
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+
+# PWA
+frontend/public/sw.js
+frontend/public/workbox-*.js

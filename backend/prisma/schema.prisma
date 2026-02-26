@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionModality {
+  PRESENTIAL
+  ONLINE
+}
+
+enum AssignmentPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+enum RepeatRule {
+  NONE
+  WEEKLY
+  MONTHLY
+}
+
+enum ExamType {
+  QUIZ
+  MIDTERM
+  FINAL
+  OTHER
+}
+
+enum ProjectTaskStatus {
+  TODO
+  DOING
+  DONE
+}
+
+enum ProjectStatus {
+  TODO
+  DOING
+  DONE
+}
+
+enum NotificationType {
+  EXAM
+  ASSIGNMENT
+  MILESTONE
+  SYSTEM
+}
+
+model User {
+  id            String               @id @default(cuid())
+  email         String               @unique
+  passwordHash  String
+  name          String
+  career        String?
+  university    String?
+  timezone      String               @default("UTC")
+  notifyInApp   Boolean              @default(true)
+  notifyEmail   Boolean              @default(false)
+  darkModePref  Boolean              @default(false)
+  themePreset   String               @default("ocean")
+  browserPushEnabled Boolean         @default(false)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  courses       Course[]
+  assignments   Assignment[]
+  exams         Exam[]
+  projects      Project[]
+  grades        Grade[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+  passwordResets PasswordResetToken[]
+  tags          Tag[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Course {
+  id         String         @id @default(cuid())
+  userId     String
+  name       String
+  code       String
+  teacher    String?
+  credits    Int?
+  color      String?
+  semester   String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classSessions ClassSession[]
+  assignments  Assignment[]
+  exams        Exam[]
+  projects     Project[]
+  grades       Grade[]
+
+  @@unique([userId, code])
+  @@index([userId])
+}
+
+model ClassSession {
+  id         String          @id @default(cuid())
+  courseId   String
+  dayOfWeek  Int
+  startTime  String
+  endTime    String
+  room       String?
+  modality   SessionModality @default(PRESENTIAL)
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+}
+
+model Assignment {
+  id              String             @id @default(cuid())
+  userId          String
+  courseId        String?
+  title           String
+  description     String?
+  dueDate         DateTime
+  priority        AssignmentPriority @default(MEDIUM)
+  status          AssignmentStatus   @default(PENDING)
+  repeatRule      RepeatRule         @default(NONE)
+  attachmentLinks String[]           @default([])
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  assignmentTags AssignmentTag[]
+
+  @@index([userId])
+  @@index([userId, dueDate])
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([courseId])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignmentTags AssignmentTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model AssignmentTag {
+  assignmentId String
+  tagId        String
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  tag        Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([assignmentId, tagId])
+}
+
+model Exam {
+  id              String    @id @default(cuid())
+  userId          String
+  courseId        String?
+  title           String
+  dateTime        DateTime
+  type            ExamType  @default(OTHER)
+  location        String?
+  syllabus        String?
+  weight          Float?
+  reminderOffsets Int[]     @default([10080, 4320, 1440, 360, 60])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, dateTime])
+  @@index([userId, type])
+  @@index([userId, createdAt])
+  @@index([courseId])
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  userId      String
+  courseId    String?
+  name        String
+  description String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  status      ProjectStatus @default(TODO)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course     Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  milestones Milestone[]
+  tasks      ProjectTask[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, dueDate])
+  @@index([userId, createdAt])
+  @@index([courseId])
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime?
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectTask {
+  id          String            @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      ProjectTaskStatus @default(TODO)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Grade {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  name      String
+  score     Float
+  maxScore  Float
+  weight    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Notification {
+  id           String           @id @default(cuid())
+  userId       String
+  title        String
+  message      String
+  type         NotificationType @default(SYSTEM)
+  read         Boolean          @default(false)
+  eventKey     String?          @unique
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  createdAt    DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([userId, read, createdAt])
+  @@index([read])
+}

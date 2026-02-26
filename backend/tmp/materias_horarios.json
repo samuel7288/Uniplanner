@@ -1,0 +1,106 @@
+{
+  "source": "c:\\Users\\samue\\OneDrive\\Documents\\UES 2026 ciclo 1\\materias_horarios.xlsx",
+  "generatedAt": "2026-02-25T17:16:00.712047Z",
+  "sheets": {
+    "materias": [
+      {
+        "name": "Legislación Profesional",
+        "code": "LPR",
+        "teacher": "Licda. Zoila Estefany Chiquillo Salinas",
+        "credits": "4",
+        "color": "#1A5276",
+        "semester": "I-2026"
+      },
+      {
+        "name": "Microprogramación",
+        "code": "MIP115",
+        "teacher": "Msc. Eri Samuel Murcia Peraza",
+        "credits": "4",
+        "color": "#1E8449",
+        "semester": "I-2026"
+      },
+      {
+        "name": "Sistemas de Información Gerencial",
+        "code": "SGI115",
+        "teacher": "Ing. Daniel Alejandro Coello Yanes",
+        "credits": "4",
+        "color": "#6C3483",
+        "semester": "I-2026"
+      },
+      {
+        "name": "Recursos Humanos",
+        "code": "RH115",
+        "teacher": "Licda. Xiomara del Carmen Vásquez",
+        "credits": "4",
+        "color": "#B7950B",
+        "semester": "I-2026"
+      }
+    ],
+    "horarios": [
+      {
+        "course_code": "SGI115",
+        "day_of_week": "0",
+        "start_time": "19:00",
+        "end_time": "20:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "SGI115",
+        "day_of_week": "0",
+        "start_time": "21:00",
+        "end_time": "22:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "RH115",
+        "day_of_week": "2",
+        "start_time": "19:00",
+        "end_time": "20:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "RH115",
+        "day_of_week": "2",
+        "start_time": "21:00",
+        "end_time": "22:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "MIP115",
+        "day_of_week": "3",
+        "start_time": "19:00",
+        "end_time": "20:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "MIP115",
+        "day_of_week": "3",
+        "start_time": "21:00",
+        "end_time": "22:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "LPR",
+        "day_of_week": "3",
+        "start_time": "00:00",
+        "end_time": "00:00",
+        "room": "Ver plataforma UES (por confirmar)",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "Nota: day_of_week → 0=Lun, 1=Mar, 2=Mié, 3=Jue, 4=Vie, 5=Sáb, 6=Dom. LPR: horario de tutoría no publicado en el PDF; confirmar en plataforma al inicio del ciclo.",
+        "day_of_week": "",
+        "start_time": "",
+        "end_time": "",
+        "room": "",
+        "modality": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,899 @@
+{
+  "source": "c:\\Users\\samue\\OneDrive\\Documents\\UES 2026 ciclo 1\\UES_2026_ciclo1_datos.xlsx",
+  "generatedAt": "2026-02-25T17:16:00.712425Z",
+  "sheets": {
+    "materias": [
+      {
+        "code": "LPR",
+        "name": "Legislación Profesional",
+        "teacher": "Licda. Zoila Estefany Chiquillo Salinas",
+        "credits": "4",
+        "color": "#1A5276",
+        "semester": "I-2026"
+      },
+      {
+        "code": "MIP115",
+        "name": "Microprogramación",
+        "teacher": "Msc. Eri Samuel Murcia Peraza",
+        "credits": "4",
+        "color": "#1E8449",
+        "semester": "I-2026"
+      },
+      {
+        "code": "SGI115",
+        "name": "Sistemas de Información Gerencial",
+        "teacher": "Ing. Daniel Alejandro Coello Yanes",
+        "credits": "4",
+        "color": "#6C3483",
+        "semester": "I-2026"
+      },
+      {
+        "code": "RH115",
+        "name": "Recursos Humanos",
+        "teacher": "Licda. Xiomara del Carmen Vásquez",
+        "credits": "4",
+        "color": "#B7950B",
+        "semester": "I-2026"
+      }
+    ],
+    "horarios": [
+      {
+        "course_code": "SGI115",
+        "day_of_week": "0",
+        "start_time": "19:00",
+        "end_time": "20:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "SGI115",
+        "day_of_week": "0",
+        "start_time": "21:00",
+        "end_time": "22:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "RH115",
+        "day_of_week": "2",
+        "start_time": "19:00",
+        "end_time": "20:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "RH115",
+        "day_of_week": "2",
+        "start_time": "21:00",
+        "end_time": "22:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "MIP115",
+        "day_of_week": "3",
+        "start_time": "19:00",
+        "end_time": "20:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "MIP115",
+        "day_of_week": "3",
+        "start_time": "21:00",
+        "end_time": "22:40",
+        "room": "Microsoft Teams / Google Meet",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "LPR",
+        "day_of_week": "3",
+        "start_time": "00:00",
+        "end_time": "00:00",
+        "room": "Ver plataforma UES (por confirmar)",
+        "modality": "ONLINE"
+      },
+      {
+        "course_code": "day_of_week: 0=Lun 1=Mar 2=Mié 3=Jue 4=Vie 5=Sáb 6=Dom  |  LPR: horario de tutoría no publicado en el PDF, confirmar en plataforma al inicio del ciclo.",
+        "day_of_week": "",
+        "start_time": "",
+        "end_time": "",
+        "room": "",
+        "modality": ""
+      }
+    ],
+    "tareas": [
+      {
+        "title": "Tarea Corta 1",
+        "course_code": "LPR",
+        "due_date": "2026-03-08 23:59",
+        "description": "Foro: responder dos interrogantes sobre contenido Unidad 1",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "tarea-corta,legislacion",
+        "attachment_links": ""
+      },
+      {
+        "title": "Tarea Corta 2",
+        "course_code": "LPR",
+        "due_date": "2026-04-26 23:59",
+        "description": "Reporte: análisis de solicitud de Acceso a la Información a institución pública",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "tarea-corta,legislacion",
+        "attachment_links": ""
+      },
+      {
+        "title": "Tarea Corta 3",
+        "course_code": "LPR",
+        "due_date": "2026-06-14 23:59",
+        "description": "Cuestionario en línea opción múltiple — Unidad V",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "tarea-corta,legislacion",
+        "attachment_links": ""
+      },
+      {
+        "title": "Investigación 1",
+        "course_code": "LPR",
+        "due_date": "2026-04-08 23:59",
+        "description": "Tarea de investigación (asignación 26 mar)",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "investigacion,legislacion",
+        "attachment_links": ""
+      },
+      {
+        "title": "Investigación 2",
+        "course_code": "LPR",
+        "due_date": "2026-05-14 23:59",
+        "description": "Tarea de investigación (asignación 7 may)",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "investigacion,legislacion",
+        "attachment_links": ""
+      },
+      {
+        "title": "Tarea de Aplicación",
+        "course_code": "LPR",
+        "due_date": "2026-06-05 23:59",
+        "description": "Análisis caso legal aplicando normativa salvadoreña (29 may – 5 jun)",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "aplicacion,legislacion",
+        "attachment_links": ""
+      },
+      {
+        "title": "Tarea de Investigación",
+        "course_code": "MIP115",
+        "due_date": "2026-05-09 23:55",
+        "description": "Artículo investigación ESP32 y Raspberry Pi Pico — formato APA; incluir simulación Wokwi",
+        "priority": "MEDIUM",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "investigacion,ensamblador",
+        "attachment_links": ""
+      },
+      {
+        "title": "Discusión 1",
+        "course_code": "SGI115",
+        "due_date": "2026-03-22 23:55",
+        "description": "Caso de estudio Unidad I: ventajas estratégicas SIG + cuestionario en línea",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "discusion,sgi",
+        "attachment_links": ""
+      },
+      {
+        "title": "Discusión 2",
+        "course_code": "SGI115",
+        "due_date": "2026-04-19 23:55",
+        "description": "Caso de estudio Unidades II-III: sistemas empresariales y comercio electrónico",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "discusion,sgi",
+        "attachment_links": ""
+      },
+      {
+        "title": "Discusión 3 — Odoo",
+        "course_code": "SGI115",
+        "due_date": "2026-05-03 23:55",
+        "description": "Completar curso 'Aprende a Gestionar tu Empresa con Odoo' (12 capítulos, simulador Scale-Up)",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "discusion,odoo,sgi",
+        "attachment_links": ""
+      },
+      {
+        "title": "Ensayo — Entrega",
+        "course_code": "RH115",
+        "due_date": "2026-03-15 23:59",
+        "description": "Ensayo grupal máx. 5 págs. sobre tema RRHH (asesoría 14 mar, defensa 18 mar)",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "ensayo,rrhh",
+        "attachment_links": ""
+      },
+      {
+        "title": "Entrega de CV",
+        "course_code": "RH115",
+        "due_date": "2026-05-15 23:59",
+        "description": "Hoja de vida individual (prerequisito para Eval. Aplicativa 1 — Simulación entrevista)",
+        "priority": "MEDIUM",
+        "status": "PENDING",
+        "repeat_rule": "NONE",
+        "tags": "aplicativa,rrhh,cv",
+        "attachment_links": ""
+      }
+    ],
+    "examenes": [
+      {
+        "title": "Parcial 1",
+        "course_code": "LPR",
+        "date_time": "2026-04-25 08:00",
+        "type": "MIDTERM",
+        "location": "Sede presencial UES (confirmar en plataforma)",
+        "syllabus": "Unidades 1–3: Introducción al Derecho, Marcos Normativos, Derecho Laboral",
+        "weight": "20",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Parcial 2",
+        "course_code": "LPR",
+        "date_time": "2026-06-20 08:00",
+        "type": "MIDTERM",
+        "location": "Sede presencial UES (confirmar en plataforma)",
+        "syllabus": "Unidades 4–5: Contrato Colectivo, Derecho Mercantil y Registro de Negocios",
+        "weight": "20",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Laboratorio 1",
+        "course_code": "MIP115",
+        "date_time": "2026-03-14 19:00",
+        "type": "QUIZ",
+        "location": "Plataforma UES — En línea (síncrono)",
+        "syllabus": "Unidad 1: Sistemas numéricos y conversiones",
+        "weight": "15",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Parcial 1",
+        "course_code": "MIP115",
+        "date_time": "2026-04-09 19:00",
+        "type": "MIDTERM",
+        "location": "Plataforma UES — En línea (síncrono)",
+        "syllabus": "Unidad 2: Arquitectura del procesador ARM",
+        "weight": "15",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Laboratorio 2",
+        "course_code": "MIP115",
+        "date_time": "2026-05-16 19:00",
+        "type": "QUIZ",
+        "location": "Plataforma UES — En línea (síncrono)",
+        "syllabus": "Unidad 3: Entrada/salida básica y redireccionamiento en ensamblador",
+        "weight": "20",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Parcial 2",
+        "course_code": "MIP115",
+        "date_time": "2026-05-28 19:00",
+        "type": "MIDTERM",
+        "location": "Plataforma UES — En línea (síncrono)",
+        "syllabus": "Unidad 3: Lenguaje ensamblador (instrucciones, modos, estructuras)",
+        "weight": "10",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Laboratorio 3",
+        "course_code": "MIP115",
+        "date_time": "2026-06-13 19:00",
+        "type": "QUIZ",
+        "location": "Plataforma UES — En línea (síncrono)",
+        "syllabus": "Unidades 4–5: Técnicas y lógica de programación, manejo de archivos",
+        "weight": "20",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Parcial 1",
+        "course_code": "SGI115",
+        "date_time": "2026-04-20 19:00",
+        "type": "MIDTERM",
+        "location": "Plataforma UES — En línea",
+        "syllabus": "Unidades I y II: Introducción SIG, Sistemas Empresariales",
+        "weight": "20",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Parcial 2",
+        "course_code": "SGI115",
+        "date_time": "2026-06-15 19:00",
+        "type": "MIDTERM",
+        "location": "Plataforma UES — En línea",
+        "syllabus": "Unidades III y IV: Desarrollo de SIG, Retos en TIC",
+        "weight": "20",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Laboratorio 1",
+        "course_code": "RH115",
+        "date_time": "2026-04-12 09:00",
+        "type": "QUIZ",
+        "location": "Plataforma UES — Virtual",
+        "syllabus": "Unidad II: Administración de planillas (prestaciones, costos, provisión)",
+        "weight": "15",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Parcial 1",
+        "course_code": "RH115",
+        "date_time": "2026-04-25 19:00",
+        "type": "MIDTERM",
+        "location": "Plataforma UES — En línea",
+        "syllabus": "Unidades I–III: Introducción RRHH, Reclutamiento, Formación y Desarrollo",
+        "weight": "10",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      },
+      {
+        "title": "Parcial 2",
+        "course_code": "RH115",
+        "date_time": "2026-05-31 09:00",
+        "type": "MIDTERM",
+        "location": "Plataforma UES — Virtual",
+        "syllabus": "Unidades IV–VI: Evaluación del desempeño, Motivación, Cultura organizacional",
+        "weight": "10",
+        "reminder_offsets": "10080,4320,1440,360,60"
+      }
+    ],
+    "proyectos": [
+      {
+        "name": "Proyecto Ensamblador",
+        "course_code": "MIP115",
+        "description": "Proyecto grupal (5 personas): solución en lenguaje ensamblador ARM con LEDs, switches y displays de 7 segmentos en simulador CPUlator. Incluye informe PDF, bitácora en Trello y videos.",
+        "start_date": "2026-05-11",
+        "due_date": "2026-06-07",
+        "status": "TODO"
+      },
+      {
+        "name": "Proyecto ERP — Etapa 1",
+        "course_code": "SGI115",
+        "description": "Primer avance del proyecto ERP: investigación preliminar, análisis de toma de decisiones y requisitos técnicos del sistema antes de migrar a plataforma Odoo.",
+        "start_date": "2026-04-06",
+        "due_date": "2026-05-17",
+        "status": "TODO"
+      },
+      {
+        "name": "Proyecto ERP — Etapa 2",
+        "course_code": "SGI115",
+        "description": "Implementación del ERP en Odoo Community aplicando lo aprendido en el curso Scale-Up. Incluye alcances, descripción del sistema, informes gerenciales y defensa.",
+        "start_date": "2026-05-18",
+        "due_date": "2026-06-14",
+        "status": "TODO"
+      },
+      {
+        "name": "Proyecto Investigación RRHH",
+        "course_code": "RH115",
+        "description": "Desarrollo de aplicación informática para control de planillas de RRHH en empresa real. Dos avances: reporte técnico (Caps. 1-2) + interfaz SW, luego reporte completo + software funcional + defensa.",
+        "start_date": "2026-03-14",
+        "due_date": "2026-06-21",
+        "status": "TODO"
+      }
+    ],
+    "milestones": [
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Formación de grupo y elección de problema",
+        "description": "Definir 5 integrantes, elegir dispositivos a usar (LEDs/switches/displays) y crear pizarra Trello",
+        "due_date": "2026-05-14",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Código funcional v1",
+        "description": "Primera versión del código ensamblador ARM corriendo en CPUlator con funcionalidad básica",
+        "due_date": "2026-05-28",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Informe final y entrega",
+        "description": "Redactar informe PDF completo, grabar videos de demostración y subir en aula virtual",
+        "due_date": "2026-06-07",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 1",
+        "title": "Selección de empresa y levantamiento de requisitos",
+        "description": "Elegir empresa, documentar proceso de toma de decisiones y requisitos técnicos",
+        "due_date": "2026-04-20",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 1",
+        "title": "Entrega Etapa 1",
+        "description": "Subir avance teórico con aspectos de toma de decisión y requisitos del sistema en aula virtual",
+        "due_date": "2026-05-17",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Configuración inicial Odoo",
+        "description": "Instalar Odoo Community y configurar módulos base para la empresa del caso de estudio",
+        "due_date": "2026-05-25",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Módulos implementados",
+        "description": "Completar implementación de módulos ERP y generar informes gerenciales",
+        "due_date": "2026-06-07",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Entrega y defensa Etapa 2",
+        "description": "Subir informe final + demo Odoo y realizar defensa ante tutor",
+        "due_date": "2026-06-14",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Asesoría inicial y selección de empresa",
+        "description": "Asistir a asesoría del 14 mar; seleccionar empresa micro/pequeña y firmar acuerdo de confidencialidad",
+        "due_date": "2026-03-14",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Entrega Avance 1",
+        "description": "Entregar Capítulos 1-2 del reporte + interfaz de menú con logo del software",
+        "due_date": "2026-05-03",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Entrega Avance 2",
+        "description": "Entregar reporte completo (Caps. 1-5 corregidos) + software funcional (módulos planillas, empleados, ausencias)",
+        "due_date": "2026-06-21",
+        "completed": "false"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Defensa integrada",
+        "description": "Presentar y defender el proyecto completo ante el tutor (mín. 10 min por grupo)",
+        "due_date": "2026-06-24",
+        "completed": "false"
+      }
+    ],
+    "project_tasks": [
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Conformar grupo de 5 personas",
+        "description": "Coordinar con compañeros y registrar grupo ante el tutor",
+        "due_date": "2026-05-11",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Crear pizarra Trello del proyecto",
+        "description": "Configurar tablero Trello para registrar bitácora de cada miembro",
+        "due_date": "2026-05-14",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Definir problema y dispositivos a simular",
+        "description": "Elegir qué resolverá el circuito (LEDs, switches, displays 7 seg.) en CPUlator",
+        "due_date": "2026-05-14",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Codificar solución en ensamblador ARM",
+        "description": "Escribir y depurar el código ensamblador en https://cpulator.01xz.net/?sys=arm-de1soc",
+        "due_date": "2026-05-28",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Grabar video de demostración del simulador",
+        "description": "Mostrar funcionamiento completo en video para incluir enlace en el informe",
+        "due_date": "2026-06-04",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Redactar informe PDF",
+        "description": "Portada, índice, introducción, objetivos, problema, código fuente, enlaces Trello/video, conclusiones, bibliografía",
+        "due_date": "2026-06-06",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Ensamblador",
+        "title": "Subir informe en aula virtual",
+        "description": "Entregar PDF con todos los elementos en la pestaña Evaluaciones antes de las 23:55",
+        "due_date": "2026-06-07",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 1",
+        "title": "Seleccionar empresa para caso de estudio",
+        "description": "Identificar empresa y levantar información sobre procesos de toma de decisiones",
+        "due_date": "2026-04-13",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 1",
+        "title": "Documentar proceso de toma de decisiones",
+        "description": "Describir cómo se toman decisiones actualmente y dónde un ERP agrega valor",
+        "due_date": "2026-04-20",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 1",
+        "title": "Redactar aspectos teóricos y requisitos técnicos",
+        "description": "Incluir análisis teórico previo a migración tecnológica y requisitos del sistema",
+        "due_date": "2026-05-10",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 1",
+        "title": "Subir Etapa 1 en aula virtual",
+        "description": "Entregar avance teórico antes de las 23:55 del 17 de mayo",
+        "due_date": "2026-05-17",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Instalar y configurar Odoo Community",
+        "description": "Instalar Odoo localmente o en la nube y configurar módulos base según la empresa",
+        "due_date": "2026-05-22",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Implementar módulos ERP requeridos",
+        "description": "Configurar contabilidad, ventas, compras, inventario u otros según el caso de estudio",
+        "due_date": "2026-06-05",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Generar informes gerenciales en Odoo",
+        "description": "Producir los informes para toma de decisiones solicitados (resultados gerenciales)",
+        "due_date": "2026-06-10",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Preparar defensa (presentación + demo)",
+        "description": "Preparar slides y demo en vivo de Odoo para la defensa ante el tutor",
+        "due_date": "2026-06-13",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto ERP — Etapa 2",
+        "title": "Subir Etapa 2 en aula virtual",
+        "description": "Entregar informe final con alcances, descripción y resultados antes de las 23:55",
+        "due_date": "2026-06-14",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Seleccionar empresa micro/pequeña",
+        "description": "Identificar empresa, obtener acuerdo de confidencialidad para acceder a información de planillas",
+        "due_date": "2026-03-20",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Redactar Capítulo 1 — Antecedentes",
+        "description": "Antecedentes, planteamiento del problema, objetivos, justificación, alcances y limitaciones",
+        "due_date": "2026-04-15",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Redactar Capítulo 2 — Marco teórico",
+        "description": "Marco teórico con temas relacionados a RRHH y el contenido de la asignatura",
+        "due_date": "2026-04-25",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Desarrollar interfaz de menú del software",
+        "description": "Crear interfaz con menú principal y logo de la empresa (puede ser video o link con acceso)",
+        "due_date": "2026-04-28",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Entregar Avance 1",
+        "description": "Subir reporte (Caps. 1-2) + interfaz SW en aula virtual antes de las 23:59",
+        "due_date": "2026-05-03",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Implementar módulos del software",
+        "description": "Módulo empleados, módulo cálculo prestaciones laborales y módulo ausencias/incapacidades",
+        "due_date": "2026-06-10",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Redactar Capítulos 3-5",
+        "description": "Metodología, análisis de resultados, propuesta, conclusiones (5) y recomendaciones (5) con APA",
+        "due_date": "2026-06-15",
+        "status": "TODO"
+      },
+      {
+        "project_name": "Proyecto Investigación RRHH",
+        "title": "Entregar Avance 2 y preparar defensa",
+        "description": "Subir reporte completo + software antes de las 23:59; preparar presentación de 10+ min",
+        "due_date": "2026-06-21",
+        "status": "TODO"
+      }
+    ],
+    "notas": [
+      {
+        "course_code": "LPR",
+        "name": "Tarea Corta 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "5"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Tarea Corta 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "5"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Tarea Corta 3",
+        "score": "",
+        "max_score": "10",
+        "weight": "5"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Investigación 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Investigación 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Tarea de Aplicación",
+        "score": "",
+        "max_score": "10",
+        "weight": "15"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Tutorías",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Parcial 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Parcial 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Laboratorio 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "15"
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Parcial 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "15"
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Tarea de Investigación",
+        "score": "",
+        "max_score": "10",
+        "weight": "5"
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Laboratorio 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Parcial 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Proyecto de Aplicación",
+        "score": "",
+        "max_score": "10",
+        "weight": "15"
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Laboratorio 3",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Discusión 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Discusión 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Discusión 3 — Odoo",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Parcial 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Proyecto Etapa 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Proyecto Etapa 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Parcial 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Ensayo",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Laboratorio 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "15"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Parcial 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Proyecto Avance 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "15"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Evaluación Aplicativa 1",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Parcial 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Evaluación Aplicativa 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "10"
+      },
+      {
+        "course_code": "RH115",
+        "name": "Proyecto Avance 2",
+        "score": "",
+        "max_score": "10",
+        "weight": "20"
+      },
+      {
+        "course_code": "LPR",
+        "name": "Nota ponderada LPR",
+        "score": "0",
+        "max_score": "",
+        "weight": ""
+      },
+      {
+        "course_code": "MIP115",
+        "name": "Nota ponderada MIP115",
+        "score": "0",
+        "max_score": "",
+        "weight": ""
+      },
+      {
+        "course_code": "SGI115",
+        "name": "Nota ponderada SGI115",
+        "score": "0",
+        "max_score": "",
+        "weight": ""
+      },
+      {
+        "course_code": "RH115",
+        "name": "Nota ponderada RH115",
+        "score": "—",
+        "max_score": "",
+        "weight": ""
+      }
+    ]
+  }
+}

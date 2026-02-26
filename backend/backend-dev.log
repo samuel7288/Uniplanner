@@ -1,0 +1,1034 @@
+
+> uniplanner-backend@1.0.0 dev
+> ts-node-dev --respawn --transpile-only src/server.ts
+
+[INFO] 08:29:07 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.3)
+UniPlanner API running on port 4000
+[0mGET /api/health [32m200[0m 2.418 ms - 77[0m
+prisma:error 
+Invalid `prisma.user.findUnique()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\routes\auth.ts:144:36
+
+  141 asyncHandler(async (req, res) => {
+  142   const { email, password } = req.body;
+  143 
+→ 144   const user = await prisma.user.findUnique(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+PrismaClientInitializationError: 
+Invalid `prisma.user.findUnique()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\routes\auth.ts:144:36
+
+  141 asyncHandler(async (req, res) => {
+  142   const { email, password } = req.body;
+  143 
+→ 144   const user = await prisma.user.findUnique(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at C:\Users\samue\OneDrive\Documents\Prueba\backend\src\routes\auth.ts:144:18 {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+[0mPOST /api/auth/login [31m500[0m 4035.229 ms - 424[0m
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+[0mGET /api/auth/me [33m401[0m 0.752 ms - 26[0m
+[0mGET /api/auth/me [33m401[0m 0.257 ms - 26[0m
+prisma:error 
+Invalid `prisma.user.findUnique()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\routes\auth.ts:144:36
+
+  141 asyncHandler(async (req, res) => {
+  142   const { email, password } = req.body;
+  143 
+→ 144   const user = await prisma.user.findUnique(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+PrismaClientInitializationError: 
+Invalid `prisma.user.findUnique()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\routes\auth.ts:144:36
+
+  141 asyncHandler(async (req, res) => {
+  142   const { email, password } = req.body;
+  143 
+→ 144   const user = await prisma.user.findUnique(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at C:\Users\samue\OneDrive\Documents\Prueba\backend\src\routes\auth.ts:144:18 {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+[0mPOST /api/auth/login [31m500[0m 4007.767 ms - 424[0m
+[0mGET /api/auth/me [33m401[0m 0.385 ms - 26[0m
+[0mGET /api/auth/me [33m401[0m 0.241 ms - 26[0m
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
+prisma:error 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+Scheduler error PrismaClientInitializationError: 
+Invalid `prisma.exam.findMany()` invocation in
+C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:35
+
+  44 }
+  45 
+  46 async function processExamReminders(now: Date): Promise<void> {
+→ 47   const exams = await prisma.exam.findMany(
+Can't reach database server at `localhost:5432`
+
+Please make sure your database server is running at `localhost:5432`.
+    at $n.handleRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:7615)
+    at $n.handleAndLogRequestError (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at l (C:\Users\samue\OneDrive\Documents\Prueba\backend\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at processExamReminders (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:47:17)
+    at Task._execution (C:\Users\samue\OneDrive\Documents\Prueba\backend\src\lib\scheduler.ts:165:7) {
+  clientVersion: '5.22.0',
+  errorCode: undefined
+}
