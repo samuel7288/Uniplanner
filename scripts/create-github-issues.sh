@@ -4,31 +4,40 @@
 # Crea en GitHub todos los issues del informe de seguridad y bugs detectados.
 #
 # REQUISITOS:
-#   - curl (incluido en Git Bash para Windows)
-#   - Un GitHub Personal Access Token (PAT) con permisos: repo
-#     Créalo en: GitHub → Settings → Developer settings → Personal access tokens
+#   - GitHub CLI (gh): https://cli.github.com
+#   - Autenticado via: gh auth login
+#     O pasar token:   GITHUB_TOKEN=ghp_xxxx ./scripts/create-github-issues.sh
 #
 # USO:
+#   ./scripts/create-github-issues.sh
 #   GITHUB_TOKEN=ghp_xxxxxxxxxxxx ./scripts/create-github-issues.sh
-#   O el script te pedirá el token interactivamente.
 # ──────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
 REPO="samuel7288/Uniplanner"
-API="https://api.github.com"
 
-# ── Verificar token ───────────────────────────────────────────────────────────
-if [ -z "${GITHUB_TOKEN:-}" ]; then
-  echo "Ingresa tu GitHub Personal Access Token (PAT):"
-  echo "(GitHub → Settings → Developer settings → Personal access tokens → Tokens classic)"
-  read -rs GITHUB_TOKEN
-  echo ""
+# ── Verificar gh CLI instalado ────────────────────────────────────────────────
+if ! command -v gh &>/dev/null; then
+  echo "✗ GitHub CLI (gh) no está instalado."
+  echo "  Descárgalo en: https://cli.github.com"
+  exit 1
 fi
 
-AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
+# ── Verificar autenticación ───────────────────────────────────────────────────
+echo ""
+echo "Verificando autenticación..."
+USER_LOGIN=$(gh api user --jq '.login' 2>/dev/null || true)
 
-# ── Función para crear issue via API ─────────────────────────────────────────
+if [ -z "$USER_LOGIN" ]; then
+  echo "✗ No autenticado."
+  echo "  Opción A: gh auth login"
+  echo "  Opción B: GITHUB_TOKEN=ghp_xxxx ./scripts/create-github-issues.sh"
+  exit 1
+fi
+echo "✓ Autenticado como: $USER_LOGIN"
+
+# ── Función para crear issue ──────────────────────────────────────────────────
 create_issue() {
   local title="$1"
   local body="$2"
@@ -36,77 +45,49 @@ create_issue() {
 
   echo "  → $title"
 
-  # Construir JSON con labels como array
-  local labels_json
-  labels_json=$(echo "$labels" | tr ',' '\n' | sed 's/^/"/;s/$/"/' | tr '\n' ',' | sed 's/,$//')
+  # Convertir "label1,label2" en múltiples flags --label
+  local label_args=()
+  IFS=',' read -ra label_list <<< "$labels"
+  for lbl in "${label_list[@]}"; do
+    label_args+=(--label "$lbl")
+  done
 
-  local payload
-  payload=$(printf '{"title":%s,"body":%s,"labels":[%s]}' \
-    "$(echo "$title" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo "\"$title\"")" \
-    "$(echo "$body" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo "\"$body\"")" \
-    "$labels_json")
-
-  local response
-  response=$(curl -s -w "\n%{http_code}" \
-    -X POST \
-    -H "$AUTH_HEADER" \
-    -H "Accept: application/vnd.github+json" \
-    -H "Content-Type: application/json" \
-    -d "$payload" \
-    "$API/repos/$REPO/issues")
-
-  local http_code
-  http_code=$(echo "$response" | tail -1)
-  local body_resp
-  body_resp=$(echo "$response" | head -n -1)
-
-  if [ "$http_code" != "201" ]; then
-    echo "    ⚠ Error HTTP $http_code: $(echo "$body_resp" | grep -o '"message":"[^"]*"' | head -1)"
+  local url
+  if url=$(gh issue create \
+    --repo "$REPO" \
+    --title "$title" \
+    --body "$body" \
+    "${label_args[@]}" 2>&1); then
+    echo "    ✓ $url"
   else
-    local url
-    url=$(echo "$body_resp" | grep -o '"html_url":"[^"]*"' | head -1 | cut -d'"' -f4)
-    echo "    ✓ Creado: $url"
+    echo "    ⚠ Error: $url"
   fi
 }
 
-# ── Función para crear label via API ─────────────────────────────────────────
+# ── Función para crear label ──────────────────────────────────────────────────
 create_label() {
   local name="$1"
   local color="$2"
   local desc="$3"
 
-  curl -s -o /dev/null \
-    -X POST \
-    -H "$AUTH_HEADER" \
-    -H "Accept: application/vnd.github+json" \
-    -H "Content-Type: application/json" \
-    -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$desc\"}" \
-    "$API/repos/$REPO/labels" || true
+  gh label create "$name" \
+    --repo "$REPO" \
+    --color "$color" \
+    --description "$desc" \
+    --force 2>/dev/null || true
 }
 
-# ── Verificar autenticación ───────────────────────────────────────────────────
-echo ""
-echo "Verificando token..."
-USER_RESP=$(curl -s -H "$AUTH_HEADER" -H "Accept: application/vnd.github+json" "$API/user")
-USER_LOGIN=$(echo "$USER_RESP" | grep -o '"login":"[^"]*"' | head -1 | cut -d'"' -f4)
-
-if [ -z "$USER_LOGIN" ]; then
-  echo "✗ Token inválido o sin permisos. Verifica tu PAT."
-  exit 1
-fi
-echo "✓ Autenticado como: $USER_LOGIN"
-
-# ── Crear labels ─────────────────────────────────────────────────────────────
+# ── Crear labels ──────────────────────────────────────────────────────────────
 echo ""
 echo "Creando labels..."
-create_label "security"        "CC0000" "Vulnerabilidad de seguridad"
-create_label "bug"             "d73a4a" "Error o comportamiento incorrecto"
-create_label "config"          "0075ca" "Configuracion o despliegue"
-create_label "performance"     "e4e669" "Rendimiento"
+create_label "security"          "CC0000" "Vulnerabilidad de seguridad"
+create_label "bug"               "d73a4a" "Error o comportamiento incorrecto"
+create_label "config"            "0075ca" "Configuracion o despliegue"
+create_label "performance"       "e4e669" "Rendimiento"
 create_label "severity:critical" "b60205" "Severidad critica"
-create_label "severity:high"   "e11d48" "Severidad alta"
-create_label "severity:medium" "fb8f00" "Severidad media"
-create_label "severity:low"    "0e8a16" "Severidad baja"
+create_label "severity:high"     "e11d48" "Severidad alta"
+create_label "severity:medium"   "fb8f00" "Severidad media"
+create_label "severity:low"      "0e8a16" "Severidad baja"
 echo "✓ Labels listos"
 
 echo ""
