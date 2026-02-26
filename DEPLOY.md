@@ -73,6 +73,7 @@ Valores **obligatorios** a cambiar:
 - `DATABASE_URL` → actualizar la contraseña para que coincida
 - `JWT_ACCESS_SECRET` → generar con `openssl rand -hex 32`
 - `JWT_REFRESH_SECRET` → generar con `openssl rand -hex 32`
+- `REDIS_PASSWORD` → generar con `openssl rand -hex 32`
 - `FRONTEND_URL` → `https://tu-dominio.com`
 
 ### Paso 4: Desplegar

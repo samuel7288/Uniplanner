@@ -7,8 +7,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   BACKEND_PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  JWT_ACCESS_SECRET: z.string().min(10, "JWT_ACCESS_SECRET must be at least 10 chars"),
-  JWT_REFRESH_SECRET: z.string().min(10, "JWT_REFRESH_SECRET must be at least 10 chars"),
+  JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be at least 32 chars"),
+  JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be at least 32 chars"),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(7),
   FRONTEND_URL: z.string().default("http://localhost:5173"),
@@ -18,6 +18,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default("UniPlanner <no-reply@uniplanner.local>"),
   REDIS_URL: z.string().default("redis://localhost:6379"),
+  REDIS_PASSWORD: z.string().min(16, "REDIS_PASSWORD must be at least 16 chars").optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -35,5 +36,22 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const env = parsed.data;
+const redisPasswordFromUrl = (() => {
+  try {
+    const url = new URL(parsed.data.REDIS_URL);
+    return url.password || undefined;
+  } catch {
+    return undefined;
+  }
+})();
+
+if (!parsed.data.REDIS_PASSWORD && !redisPasswordFromUrl) {
+  console.error("REDIS_PASSWORD is required, or REDIS_URL must include a password.");
+  process.exit(1);
+}
+
+export const env = {
+  ...parsed.data,
+  REDIS_PASSWORD: parsed.data.REDIS_PASSWORD ?? redisPasswordFromUrl!,
+};
 export const isProd = env.NODE_ENV === "production";

@@ -6,6 +6,8 @@
 #    y ponla como BACKEND_INTERNAL_URL en el servicio frontend.
 # 2. Toma la URL pública del frontend (https://uniplanner-frontend.onrender.com)
 #    y ponla como FRONTEND_URL en el servicio backend.
+# 3. Redeploy del frontend para aplicar BACKEND_INTERNAL_URL.
+# 4. Redeploy del backend para aplicar FRONTEND_URL.
 
 services:
 

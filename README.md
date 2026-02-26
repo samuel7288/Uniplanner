@@ -157,6 +157,17 @@ En Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
+Recomendado para desarrollo local:
+
+```bash
+cp .env.example .env.local
+```
+
+En `.env` o `.env.local`, reemplaza credenciales por valores fuertes antes de levantar contenedores:
+- `POSTGRES_PASSWORD` y `REDIS_PASSWORD`: genera secretos con `openssl rand -hex 32`
+- `JWT_ACCESS_SECRET` y `JWT_REFRESH_SECRET`: minimo 32 caracteres
+- `DATABASE_URL`: debe coincidir con el usuario/password definidos
+
 2. Levanta toda la app:
 
 ```bash
@@ -170,6 +181,18 @@ docker compose up --build
 4. Credenciales demo (seed):
 - Email: `demo@uniplanner.app`
 - Password: `Demo12345!`
+
+### Deploy en Render (pasos manuales obligatorios)
+
+`render.yaml` deja dos variables en `sync: false` para evitar valores incorrectos en el primer deploy:
+- `BACKEND_INTERNAL_URL` (servicio frontend)
+- `FRONTEND_URL` (servicio backend)
+
+Flujo recomendado:
+1. Ejecuta el primer deploy del blueprint.
+2. Copia la URL publica del backend y guardala en `BACKEND_INTERNAL_URL` del frontend.
+3. Copia la URL publica del frontend y guardala en `FRONTEND_URL` del backend.
+4. Redeploy de ambos servicios para aplicar enlaces cruzados.
 
 ### Migraciones y seed (manual)
 

@@ -38,12 +38,16 @@ if [ -z "${DOMAIN:-}" ] || [ "$DOMAIN" = "uniplanner.example.com" ]; then
   warn "Continuing with localhost (no HTTPS)..."
 fi
 
-if [ "${JWT_ACCESS_SECRET:-}" = "change_this_access_secret_min_10_chars" ]; then
+if [ "${JWT_ACCESS_SECRET:-}" = "change_this_access_secret_min_32_chars" ]; then
   error "JWT_ACCESS_SECRET is still the default value. Change it in .env!"
 fi
 
-if [ "${JWT_REFRESH_SECRET:-}" = "change_this_refresh_secret_min_10_chars" ]; then
+if [ "${JWT_REFRESH_SECRET:-}" = "change_this_refresh_secret_min_32_chars" ]; then
   error "JWT_REFRESH_SECRET is still the default value. Change it in .env!"
+fi
+
+if [ "${REDIS_PASSWORD:-}" = "change_this_redis_password_min_16_chars" ] || [ -z "${REDIS_PASSWORD:-}" ]; then
+  error "REDIS_PASSWORD is missing or still the default value. Change it in .env!"
 fi
 
 # ── Deploy ───────────────────────────────────────────────────────────────────

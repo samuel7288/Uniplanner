@@ -11,11 +11,11 @@ const router = Router();
 
 const examSchema = z.object({
   courseId: z.string().optional().nullable(),
-  title: z.string().min(2),
+  title: z.string().min(2).max(255),
   dateTime: z.coerce.date(),
   type: z.nativeEnum(ExamType).default(ExamType.OTHER),
-  location: z.string().optional().nullable(),
-  syllabus: z.string().optional().nullable(),
+  location: z.string().max(255).optional().nullable(),
+  syllabus: z.string().max(5000).optional().nullable(),
   weight: z.number().min(0).max(100).optional().nullable(),
   reminderOffsets: z.array(z.number().int().positive()).optional(),
 });
@@ -30,7 +30,7 @@ router.get(
       params: z.object({}).passthrough(),
       query: z.object({
         courseId: z.string().optional(),
-        q: z.string().optional(),
+        q: z.string().max(255).optional(),
         from: z.string().optional(),
         to: z.string().optional(),
         type: z.nativeEnum(ExamType).optional(),

@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import { addDays, addMinutes } from "date-fns";
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { env, isProd } from "../config/env";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import {
   createAccessToken,
@@ -65,6 +66,19 @@ const resetSchema = z.object({
 });
 
 type AuthUser = { id: string; email: string; name: string };
+type AuditLevel = "info" | "warn";
+
+function auditAuth(req: Request, level: AuditLevel, event: string, details?: Record<string, unknown>): void {
+  logger[level](
+    {
+      event,
+      ip: req.ip,
+      userAgent: req.get("user-agent") ?? "unknown",
+      ...details,
+    },
+    "auth_audit",
+  );
+}
 
 /**
  * Creates access + refresh tokens, persists refresh hash in DB,
@@ -96,7 +110,8 @@ router.post(
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      res.status(409).json({ message: "Email already registered" });
+      auditAuth(req, "warn", "register_duplicate_email", { email });
+      res.status(200).json({ message: "If registration is possible, please sign in." });
       return;
     }
 
@@ -111,6 +126,7 @@ router.post(
     });
 
     const tokens = await issueTokens(user, res);
+    auditAuth(req, "info", "register_success", { userId: user.id, email: user.email });
     res.status(201).json({ user, ...tokens });
   }),
 );
@@ -123,17 +139,20 @@ router.post(
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      auditAuth(req, "warn", "login_failed_user_not_found", { email });
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
 
     const matches = await bcrypt.compare(password, user.passwordHash);
     if (!matches) {
+      auditAuth(req, "warn", "login_failed_bad_password", { userId: user.id, email: user.email });
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
 
     const tokens = await issueTokens({ id: user.id, email: user.email, name: user.name }, res);
+    auditAuth(req, "info", "login_success", { userId: user.id, email: user.email });
 
     res.json({
       user: {
@@ -153,6 +172,7 @@ router.post(
     const refreshToken = req.cookies[REFRESH_COOKIE] as string | undefined;
 
     if (!refreshToken) {
+      auditAuth(req, "warn", "refresh_missing_token");
       res.status(401).json({ message: "No refresh token" });
       return;
     }
@@ -161,6 +181,7 @@ router.post(
     try {
       payload = verifyRefreshToken(refreshToken);
     } catch {
+      auditAuth(req, "warn", "refresh_invalid_token");
       res.clearCookie(REFRESH_COOKIE, { path: COOKIE_OPTIONS.path });
       res.status(401).json({ message: "Invalid refresh token" });
       return;
@@ -172,6 +193,7 @@ router.post(
     });
 
     if (!existing) {
+      auditAuth(req, "warn", "refresh_revoked_or_expired", { userId: payload.sub });
       res.clearCookie(REFRESH_COOKIE, { path: COOKIE_OPTIONS.path });
       res.status(401).json({ message: "Refresh token expired or revoked" });
       return;
@@ -183,6 +205,7 @@ router.post(
     });
 
     if (!user) {
+      auditAuth(req, "warn", "refresh_user_not_found", { userId: payload.sub });
       res.clearCookie(REFRESH_COOKIE, { path: COOKIE_OPTIONS.path });
       res.status(401).json({ message: "User not found" });
       return;
@@ -192,6 +215,7 @@ router.post(
     await prisma.refreshToken.update({ where: { id: existing.id }, data: { revokedAt: new Date() } });
 
     const tokens = await issueTokens(user, res);
+    auditAuth(req, "info", "refresh_success", { userId: user.id, email: user.email });
     res.json(tokens);
   }),
 );
@@ -201,10 +225,21 @@ router.post(
   asyncHandler(async (req, res) => {
     const refreshToken = req.cookies[REFRESH_COOKIE] as string | undefined;
     if (refreshToken) {
+      let refreshPayload: { sub: string } | null = null;
+      try {
+        refreshPayload = verifyRefreshToken(refreshToken) as { sub: string };
+      } catch {
+        // Token could be invalid/expired; still clear cookie and continue.
+      }
+
       await prisma.refreshToken.updateMany({
         where: { tokenHash: hashToken(refreshToken), revokedAt: null },
         data: { revokedAt: new Date() },
       });
+
+      auditAuth(req, "info", "logout_success", { userId: refreshPayload?.sub ?? null });
+    } else {
+      auditAuth(req, "warn", "logout_without_refresh_cookie");
     }
     res.clearCookie(REFRESH_COOKIE, { path: COOKIE_OPTIONS.path });
     res.json({ message: "Logged out" });
@@ -216,6 +251,7 @@ router.post(
   validate(forgotSchema),
   asyncHandler(async (req, res) => {
     const { email } = req.body;
+    auditAuth(req, "info", "forgot_password_requested", { email });
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (user) {
@@ -231,11 +267,10 @@ router.post(
         to: user.email,
         subject: "UniPlanner password reset",
         text: `Reset your password: ${resetLink}`,
+        sensitive: true,
       });
 
-      if (!env.SMTP_HOST) {
-        process.stdout.write(`[PASSWORD RESET TOKEN] ${rawToken}\n`);
-      }
+      auditAuth(req, "info", "forgot_password_token_issued", { userId: user.id, email: user.email });
     }
 
     res.json({ message: "If the email exists, a reset instruction has been sent" });
@@ -254,6 +289,7 @@ router.post(
     });
 
     if (!existing) {
+      auditAuth(req, "warn", "reset_password_invalid_token");
       res.status(400).json({ message: "Invalid or expired reset token" });
       return;
     }
@@ -266,6 +302,7 @@ router.post(
       prisma.refreshToken.updateMany({ where: { userId: existing.userId, revokedAt: null }, data: { revokedAt: new Date() } }),
     ]);
 
+    auditAuth(req, "info", "reset_password_success", { userId: existing.userId, email: existing.user.email });
     res.clearCookie(REFRESH_COOKIE, { path: COOKIE_OPTIONS.path });
     res.json({ message: "Password updated successfully" });
   }),

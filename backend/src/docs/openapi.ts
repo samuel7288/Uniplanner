@@ -145,7 +145,10 @@ export const openApiDocument = {
             description: "User registered. Refresh token is set as HttpOnly cookie.",
             content: { "application/json": { schema: { type: "object", properties: { user: { $ref: "#/components/schemas/User" }, accessToken: { type: "string" } } } } },
           },
-          "409": { description: "Email already registered", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "200": {
+            description: "Generic response when registration cannot proceed.",
+            content: { "application/json": { schema: { type: "object", properties: { message: { type: "string" } } } } },
+          },
         },
       },
     },
