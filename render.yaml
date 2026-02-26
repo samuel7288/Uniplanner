@@ -1,7 +1,7 @@
 # Render Blueprint — despliega UniPlanner como 4 servicios.
 # Docs: https://render.com/docs/blueprint-spec
 #
-# PASOS POST-DEPLOY (ver guía abajo):
+# PASOS POST-DEPLOY:
 # 1. Toma la URL pública del backend (https://uniplanner-backend.onrender.com)
 #    y ponla como BACKEND_INTERNAL_URL en el servicio frontend.
 # 2. Toma la URL pública del frontend (https://uniplanner-frontend.onrender.com)
@@ -16,7 +16,6 @@ services:
     dockerfilePath: ./backend/Dockerfile.prod
     dockerContext: ./backend
     plan: free
-    startCommand: sh -c "npx prisma migrate deploy && node dist/server.js"
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -70,10 +69,10 @@ services:
     name: uniplanner-redis
     plan: free
     maxmemoryPolicy: noeviction
+    ipAllowList: []   # Permite acceso desde todos los servicios de Render
 
 # ── PostgreSQL ───────────────────────────────────────────────────────────────
 databases:
   - name: uniplanner-db
     databaseName: uniplanner
-    user: postgres
     plan: free
