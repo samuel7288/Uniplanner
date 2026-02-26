@@ -88,7 +88,7 @@ create_label() {
 echo ""
 echo "Verificando token..."
 USER_RESP=$(curl -s -H "$AUTH_HEADER" -H "Accept: application/vnd.github+json" "$API/user")
-USER_LOGIN=$(echo "$USER_RESP" | grep -o '"login":"[^"]*"' | head -1 | cut -d'"' -f4)
+USER_LOGIN=$(echo "$USER_RESP" | grep -o '"login":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
 
 if [ -z "$USER_LOGIN" ]; then
   echo "✗ Token inválido o sin permisos. Verifica tu PAT."
