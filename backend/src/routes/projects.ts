@@ -10,23 +10,23 @@ const router = Router();
 
 const projectSchema = z.object({
   courseId: z.string().optional().nullable(),
-  name: z.string().min(2),
-  description: z.string().optional().nullable(),
+  name: z.string().min(2).max(255),
+  description: z.string().max(5000).optional().nullable(),
   startDate: z.coerce.date().optional().nullable(),
   dueDate: z.coerce.date().optional().nullable(),
   status: z.nativeEnum(ProjectStatus).default(ProjectStatus.TODO),
 });
 
 const milestoneSchema = z.object({
-  title: z.string().min(2),
-  description: z.string().optional().nullable(),
+  title: z.string().min(2).max(255),
+  description: z.string().max(5000).optional().nullable(),
   dueDate: z.coerce.date().optional().nullable(),
   completed: z.boolean().optional(),
 });
 
 const taskSchema = z.object({
-  title: z.string().min(2),
-  description: z.string().optional().nullable(),
+  title: z.string().min(2).max(255),
+  description: z.string().max(5000).optional().nullable(),
   dueDate: z.coerce.date().optional().nullable(),
   status: z.nativeEnum(ProjectTaskStatus).optional(),
 });
@@ -37,7 +37,7 @@ const listProjectsSchema = z.object({
   body: z.object({}).passthrough(),
   params: z.object({}).passthrough(),
   query: z.object({
-    q: z.string().optional(),
+    q: z.string().max(255).optional(),
     courseId: z.string().optional(),
     status: z.nativeEnum(ProjectStatus).optional(),
     page: z.coerce.number().int().min(1).optional(),

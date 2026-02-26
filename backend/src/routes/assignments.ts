@@ -10,15 +10,15 @@ import { asyncHandler } from "../utils/asyncHandler";
 const router = Router();
 
 const assignmentSchema = z.object({
-  title: z.string().min(2),
+  title: z.string().min(2).max(255),
   courseId: z.string().optional().nullable(),
   dueDate: z.coerce.date(),
-  description: z.string().optional().nullable(),
+  description: z.string().max(5000).optional().nullable(),
   priority: z.nativeEnum(AssignmentPriority).default(AssignmentPriority.MEDIUM),
   status: z.nativeEnum(AssignmentStatus).default(AssignmentStatus.PENDING),
   repeatRule: z.nativeEnum(RepeatRule).default(RepeatRule.NONE),
   attachmentLinks: z.array(z.string().url()).optional(),
-  tags: z.array(z.string().min(1)).optional(),
+  tags: z.array(z.string().min(1).max(50)).optional(),
 });
 
 const createSchema = z.object({
@@ -39,7 +39,7 @@ const listQuerySchema = z.object({
   query: z.object({
     status: z.nativeEnum(AssignmentStatus).optional(),
     courseId: z.string().optional(),
-    q: z.string().optional(),
+    q: z.string().max(255).optional(),
     dueFrom: z.string().optional(),
     dueTo: z.string().optional(),
     page: z.coerce.number().int().min(1).optional(),

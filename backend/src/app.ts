@@ -6,10 +6,11 @@ import helmet from "helmet";
 import pinoHttp from "pino-http";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./docs/openapi";
-import { env } from "./config/env";
+import { env, isProd } from "./config/env";
 import { logger } from "./lib/logger";
 import { prisma } from "./lib/prisma";
 import { isRedisReady } from "./lib/queue";
+import { csrfProtection } from "./middleware/csrf";
 import { errorHandler, notFound } from "./middleware/error";
 import { authRoutes } from "./routes/auth";
 import { assignmentsRoutes } from "./routes/assignments";
@@ -43,15 +44,33 @@ const authLimiter = rateLimit({
   message: { message: "Too many authentication attempts. Try again later." },
 });
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  }),
+);
 app.use(globalLimiter);
 app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
 app.use(cookieParser());
 app.use(express.json({ limit: "2mb" }));
 app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/api/health" } }));
+app.use(csrfProtection);
 
 // Interactive API documentation
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument, { customSiteTitle: "UniPlanner API" }));
+if (!isProd) {
+  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument, { customSiteTitle: "UniPlanner API" }));
+}
 
 app.get("/api/health", (_req, res) => {
   res.json({

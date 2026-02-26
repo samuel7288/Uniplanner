@@ -13,18 +13,18 @@ const classSessionSchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
-  room: z.string().optional().nullable(),
+  room: z.string().max(255).optional().nullable(),
   modality: z.nativeEnum(SessionModality).default(SessionModality.PRESENTIAL),
 });
 
 const createCourseSchema = z.object({
   body: z.object({
-    name: z.string().min(2),
-    code: z.string().min(2),
-    teacher: z.string().optional().nullable(),
+    name: z.string().min(2).max(255),
+    code: z.string().min(2).max(100),
+    teacher: z.string().max(255).optional().nullable(),
     credits: z.number().int().min(0).optional().nullable(),
-    color: z.string().optional().nullable(),
-    semester: z.string().optional().nullable(),
+    color: z.string().max(32).optional().nullable(),
+    semester: z.string().max(100).optional().nullable(),
     classSessions: z.array(classSessionSchema).optional(),
   }),
   query: z.object({}).passthrough(),
@@ -33,16 +33,24 @@ const createCourseSchema = z.object({
 
 const updateCourseSchema = z.object({
   body: z.object({
-    name: z.string().min(2).optional(),
-    code: z.string().min(2).optional(),
-    teacher: z.string().optional().nullable(),
+    name: z.string().min(2).max(255).optional(),
+    code: z.string().min(2).max(100).optional(),
+    teacher: z.string().max(255).optional().nullable(),
     credits: z.number().int().min(0).optional().nullable(),
-    color: z.string().optional().nullable(),
-    semester: z.string().optional().nullable(),
+    color: z.string().max(32).optional().nullable(),
+    semester: z.string().max(100).optional().nullable(),
   }),
   query: z.object({}).passthrough(),
   params: z.object({
     id: z.string().min(1),
+  }),
+});
+
+const gradeProjectionSchema = z.object({
+  body: z.object({}).passthrough(),
+  params: z.object({ id: z.string().min(1) }),
+  query: z.object({
+    target: z.coerce.number().min(0).max(10).default(7),
   }),
 });
 
@@ -281,8 +289,9 @@ router.delete(
 
 router.get(
   "/:id/grade-projection",
+  validate(gradeProjectionSchema),
   asyncHandler(async (req, res) => {
-    const target = Number((req.query as { target?: string }).target ?? 7);
+    const { target } = req.query as unknown as { target: number };
 
     const course = await prisma.course.findFirst({
       where: {

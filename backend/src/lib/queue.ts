@@ -4,9 +4,9 @@ import { env } from "../config/env";
 
 export const redisConnection = new Redis(env.REDIS_URL, {
   password: env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
+  maxRetriesPerRequest: 3,
   lazyConnect: true,
-  retryStrategy: (times) => Math.min(times * 200, 5000),
+  retryStrategy: (times) => Math.min(times * 100, 2000),
 });
 
 // ── Observability ─────────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ router.get(
         unreadOnly: z.coerce.boolean().optional(),
         type: z.nativeEnum(NotificationType).optional(),
         page: z.coerce.number().int().min(1).optional(),
-        limit: z.coerce.number().int().min(1).max(100).optional(),
+        limit: z.coerce.number().int().min(1).max(50).optional(),
         sortBy: z.enum(["createdAt", "read", "type"]).optional(),
         sortDir: z.enum(["asc", "desc"]).optional(),
       }),
@@ -105,6 +105,23 @@ router.get(
 );
 
 router.patch(
+  "/read-all",
+  asyncHandler(async (req, res) => {
+    await prisma.notification.updateMany({
+      where: {
+        userId: req.user!.userId,
+        read: false,
+      },
+      data: {
+        read: true,
+      },
+    });
+
+    res.json({ message: "All notifications marked as read" });
+  }),
+);
+
+router.patch(
   "/:id/read",
   asyncHandler(async (req, res) => {
     const notification = await prisma.notification.findFirst({
@@ -125,23 +142,6 @@ router.patch(
     });
 
     res.json(updated);
-  }),
-);
-
-router.patch(
-  "/read-all",
-  asyncHandler(async (req, res) => {
-    await prisma.notification.updateMany({
-      where: {
-        userId: req.user!.userId,
-        read: false,
-      },
-      data: {
-        read: true,
-      },
-    });
-
-    res.json({ message: "All notifications marked as read" });
   }),
 );
 
