@@ -83,6 +83,9 @@ services:
     restart: always
     depends_on:
       - backend
+    environment:
+      # Docker Compose internal hostname for the backend container
+      BACKEND_INTERNAL_URL: http://backend:4000
     ports:
       - "80:80"
     networks:

@@ -1,0 +1,13 @@
+# Railway configuration for the UniPlanner backend service.
+# In the Railway dashboard, set this service's root directory to /backend.
+
+[build]
+dockerfilePath = "Dockerfile.prod"
+
+[deploy]
+# Run DB migrations before starting the server.
+startCommand = "npx prisma migrate deploy && node dist/server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 60
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
