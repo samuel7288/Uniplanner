@@ -4,241 +4,299 @@
 # Crea en GitHub todos los issues del informe de seguridad y bugs detectados.
 #
 # REQUISITOS:
-#   gh CLI instalado y autenticado: gh auth login
+#   - curl (incluido en Git Bash para Windows)
+#   - Un GitHub Personal Access Token (PAT) con permisos: repo
+#     Créalo en: GitHub → Settings → Developer settings → Personal access tokens
 #
 # USO:
-#   chmod +x scripts/create-github-issues.sh
-#   ./scripts/create-github-issues.sh
+#   GITHUB_TOKEN=ghp_xxxxxxxxxxxx ./scripts/create-github-issues.sh
+#   O el script te pedirá el token interactivamente.
 # ──────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
 
 REPO="samuel7288/Uniplanner"
+API="https://api.github.com"
 
+# ── Verificar token ───────────────────────────────────────────────────────────
+if [ -z "${GITHUB_TOKEN:-}" ]; then
+  echo "Ingresa tu GitHub Personal Access Token (PAT):"
+  echo "(GitHub → Settings → Developer settings → Personal access tokens → Tokens classic)"
+  read -rs GITHUB_TOKEN
+  echo ""
+fi
+
+AUTH_HEADER="Authorization: token $GITHUB_TOKEN"
+
+# ── Función para crear issue via API ─────────────────────────────────────────
 create_issue() {
   local title="$1"
   local body="$2"
   local labels="$3"
+
   echo "  → $title"
-  gh issue create \
-    --repo "$REPO" \
-    --title "$title" \
-    --body "$body" \
-    --label "$labels" 2>/dev/null || \
-  gh issue create \
-    --repo "$REPO" \
-    --title "$title" \
-    --body "$body"
+
+  # Construir JSON con labels como array
+  local labels_json
+  labels_json=$(echo "$labels" | tr ',' '\n' | sed 's/^/"/;s/$/"/' | tr '\n' ',' | sed 's/,$//')
+
+  local payload
+  payload=$(printf '{"title":%s,"body":%s,"labels":[%s]}' \
+    "$(echo "$title" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo "\"$title\"")" \
+    "$(echo "$body" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))' 2>/dev/null || echo "\"$body\"")" \
+    "$labels_json")
+
+  local response
+  response=$(curl -s -w "\n%{http_code}" \
+    -X POST \
+    -H "$AUTH_HEADER" \
+    -H "Accept: application/vnd.github+json" \
+    -H "Content-Type: application/json" \
+    -d "$payload" \
+    "$API/repos/$REPO/issues")
+
+  local http_code
+  http_code=$(echo "$response" | tail -1)
+  local body_resp
+  body_resp=$(echo "$response" | head -n -1)
+
+  if [ "$http_code" != "201" ]; then
+    echo "    ⚠ Error HTTP $http_code: $(echo "$body_resp" | grep -o '"message":"[^"]*"' | head -1)"
+  else
+    local url
+    url=$(echo "$body_resp" | grep -o '"html_url":"[^"]*"' | head -1 | cut -d'"' -f4)
+    echo "    ✓ Creado: $url"
+  fi
 }
 
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Uniplanner — Security & Bug Audit Issue Creator"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+# ── Función para crear label via API ─────────────────────────────────────────
+create_label() {
+  local name="$1"
+  local color="$2"
+  local desc="$3"
 
-# Crear labels si no existen (ignora error si ya existen)
-for label_def in \
-  "security:CC0000:Vulnerabilidad de seguridad" \
-  "bug:d73a4a:Error o comportamiento incorrecto" \
-  "config:0075ca:Configuración o despliegue" \
-  "performance:e4e669:Rendimiento" \
-  "severity:critical:b60205:Severidad crítica" \
-  "severity:high:e11d48:Severidad alta" \
-  "severity:medium:fb8f00:Severidad media" \
-  "severity:low:0e8a16:Severidad baja"
-do
-  IFS=':' read -r name color desc <<< "$label_def"
-  gh label create "$name" --color "$color" --description "$desc" --repo "$REPO" 2>/dev/null || true
-done
+  curl -s -o /dev/null \
+    -X POST \
+    -H "$AUTH_HEADER" \
+    -H "Accept: application/vnd.github+json" \
+    -H "Content-Type: application/json" \
+    -d "{\"name\":\"$name\",\"color\":\"$color\",\"description\":\"$desc\"}" \
+    "$API/repos/$REPO/labels" || true
+}
+
+# ── Verificar autenticación ───────────────────────────────────────────────────
+echo ""
+echo "Verificando token..."
+USER_RESP=$(curl -s -H "$AUTH_HEADER" -H "Accept: application/vnd.github+json" "$API/user")
+USER_LOGIN=$(echo "$USER_RESP" | grep -o '"login":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+if [ -z "$USER_LOGIN" ]; then
+  echo "✗ Token inválido o sin permisos. Verifica tu PAT."
+  exit 1
+fi
+echo "✓ Autenticado como: $USER_LOGIN"
+
+# ── Crear labels ─────────────────────────────────────────────────────────────
+echo ""
+echo "Creando labels..."
+create_label "security"        "CC0000" "Vulnerabilidad de seguridad"
+create_label "bug"             "d73a4a" "Error o comportamiento incorrecto"
+create_label "config"          "0075ca" "Configuracion o despliegue"
+create_label "performance"     "e4e669" "Rendimiento"
+create_label "severity:critical" "b60205" "Severidad critica"
+create_label "severity:high"   "e11d48" "Severidad alta"
+create_label "severity:medium" "fb8f00" "Severidad media"
+create_label "severity:low"    "0e8a16" "Severidad baja"
+echo "✓ Labels listos"
 
 echo ""
-echo "▶ CRÍTICOS"
-# ── Issue 1 ──────────────────────────────────────────────────────────────────
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Uniplanner — Security & Bug Audit Issues"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "▶ CRITICOS"
+# ─────────────────────────────────────────────────────────────────────────────
+
 create_issue \
   "[Security][Critical] Password reset token exposed in server logs" \
-  "## Descripción
-En \`backend/src/routes/auth.ts:237\`, cuando SMTP no está configurado el token de reseteo de contraseña se escribe directamente a stdout:
+  "## Descripcion
+En \`backend/src/routes/auth.ts:237\`, cuando SMTP no esta configurado el token de reseteo se escribe a stdout:
+
 \`\`\`ts
 process.stdout.write(\`[PASSWORD RESET TOKEN] \${rawToken}\n\`)
 \`\`\`
 
 ## Impacto
 - Tokens secretos visibles en logs de contenedores, CI/CD y paneles de Render.
-- Un atacante con acceso a logs puede robar y usar el token antes que el usuario.
+- Un atacante con acceso a logs puede robar el token y resetear la contrasena de cualquier usuario.
 
-## Solución sugerida
-Eliminar completamente la línea. Si se necesita en desarrollo, usar \`logger.debug()\` condicionado a \`NODE_ENV !== 'production'\` y nunca imprimir el token completo.
+## Solucion sugerida
+Eliminar la linea. Si se requiere en desarrollo, usar logger condicionado a \`NODE_ENV !== 'production'\` y nunca imprimir el token completo.
 
 **Archivo:** \`backend/src/routes/auth.ts:237\`" \
   "security,severity:critical"
 
-# ── Issue 2 ──────────────────────────────────────────────────────────────────
 create_issue \
   "[Security][Critical] JWT secret minimum length too weak (10 chars)" \
-  "## Descripción
-En \`backend/src/config/env.ts\`, los secretos JWT solo requieren mínimo 10 caracteres:
+  "## Descripcion
+Los secretos JWT solo requieren minimo 10 caracteres:
+
 \`\`\`ts
 JWT_ACCESS_SECRET: z.string().min(10),
 JWT_REFRESH_SECRET: z.string().min(10),
 \`\`\`
 
 ## Impacto
-Secretos cortos son vulnerables a ataques de fuerza bruta. Los JWT podrían ser forjados si el secreto es débil.
+Secretos cortos son vulnerables a ataques de fuerza bruta. Los JWT podrian ser forjados si el secreto es debil.
 
-## Solución sugerida
-Cambiar a \`z.string().min(32)\` (256 bits mínimo). Regenerar secretos en Render con \`openssl rand -hex 32\`.
+## Solucion sugerida
+Cambiar a \`z.string().min(32)\` (256 bits). Regenerar secretos con: \`openssl rand -hex 32\`
 
 **Archivo:** \`backend/src/config/env.ts:10-11\`" \
   "security,severity:critical"
 
-# ── Issue 3 ──────────────────────────────────────────────────────────────────
 create_issue \
   "[Security][Critical] Redis connection has no authentication" \
-  "## Descripción
-Redis se inicializa sin contraseña en \`backend/src/lib/queue.ts\` y en ambos docker-compose files. El puerto Redis está expuesto en desarrollo.
+  "## Descripcion
+Redis se inicializa sin contrasena en \`queue.ts\` y en ambos docker-compose files.
 
 ## Impacto
-- Cualquier proceso en la misma red puede leer/escribir la cola de trabajos.
-- Datos de notificaciones y sesiones accesibles sin autenticación.
+- Cualquier proceso en la red puede leer/escribir la cola de trabajos.
+- Datos de notificaciones y sesiones accesibles sin autenticacion.
 
-## Solución sugerida
-1. Añadir \`requirepass <password>\` en la config de Redis.
+## Solucion sugerida
+1. Anadir \`requirepass <password>\` en la config de Redis.
 2. Pasar \`REDIS_PASSWORD\` como variable de entorno.
-3. Inicializar ioredis: \`new Redis(env.REDIS_URL, { password: env.REDIS_PASSWORD })\`.
+3. Inicializar: \`new Redis(env.REDIS_URL, { password: env.REDIS_PASSWORD })\`
 
 **Archivos:** \`backend/src/lib/queue.ts\`, \`docker-compose.yml\`, \`docker-compose.prod.yml\`" \
   "security,severity:critical"
 
-# ── Issue 4 ──────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+echo ""
+echo "▶ ALTOS"
+# ─────────────────────────────────────────────────────────────────────────────
+
 create_issue \
-  "[Security][High] PostgreSQL port exposed to host in development" \
-  "## Descripción
-En \`docker-compose.yml\`, el puerto de PostgreSQL está publicado al host:
+  "[Security][High] PostgreSQL port exposed to host in docker-compose" \
+  "## Descripcion
+El puerto de PostgreSQL esta publicado al host en \`docker-compose.yml\`:
+
 \`\`\`yaml
 ports:
   - \"\${POSTGRES_PORT:-5432}:5432\"
 \`\`\`
 
 ## Impacto
-La base de datos es accesible desde cualquier proceso en el host, y potencialmente desde la red si el firewall no está configurado.
+La base de datos es accesible desde cualquier proceso en el host y potencialmente desde la red local.
 
-## Solución sugerida
-Eliminar la sección \`ports\` del servicio postgres en docker-compose.yml para desarrollo. Solo los servicios internos de Docker necesitan acceso.
+## Solucion sugerida
+Eliminar la seccion \`ports\` del servicio postgres en docker-compose.yml. Solo los servicios internos de Docker necesitan acceso.
 
 **Archivo:** \`docker-compose.yml:14\`" \
   "security,severity:high"
 
-# ── Issue 5 ──────────────────────────────────────────────────────────────────
 create_issue \
   "[Security][High] Hardcoded default database credentials in version control" \
-  "## Descripción
-\`docker-compose.yml\` usa credenciales por defecto (postgres/postgres) y \`.env.example\` las expone en el repositorio:
-\`\`\`yaml
-POSTGRES_USER: postgres
-POSTGRES_PASSWORD: postgres
-\`\`\`
+  "## Descripcion
+\`docker-compose.yml\` usa credenciales por defecto (postgres/postgres) expuestas en el repositorio.
 
 ## Impacto
-Credenciales débiles y predecibles. Cualquier persona con acceso al repo conoce las credenciales por defecto.
+Credenciales debiles y predecibles conocidas por cualquier persona con acceso al repo.
 
-## Solución sugerida
-1. Eliminar valores por defecto del docker-compose.yml — requerir variables explícitas.
-2. Usar \`.env.local\` (en .gitignore) para desarrollo local.
-3. Documentar en README cómo generar credenciales seguras.
+## Solucion sugerida
+1. Eliminar valores por defecto del docker-compose.yml.
+2. Usar \`.env.local\` (en .gitignore) para credenciales locales.
+3. Documentar como generar credenciales seguras en el README.
 
 **Archivos:** \`docker-compose.yml:10-12\`, \`.env.example\`" \
   "security,severity:high"
 
-echo ""
-echo "▶ ALTOS"
-
-# ── Issue 6 ──────────────────────────────────────────────────────────────────
 create_issue \
   "[Security][High] No CSRF protection on state-changing endpoints" \
-  "## Descripción
-No existe ningún middleware CSRF en la aplicación. Todas las rutas POST/PUT/DELETE carecen de validación CSRF.
+  "## Descripcion
+No existe ningun middleware CSRF. Todas las rutas POST/PUT/DELETE carecen de validacion CSRF.
 
 ## Impacto
 Un atacante puede hacer que un usuario autenticado realice acciones no deseadas desde un sitio malicioso (Cross-Site Request Forgery).
 
-## Solución sugerida
-Implementar protección CSRF mediante:
-- Double-submit cookie pattern para endpoints de API
-- O usar el header \`X-Requested-With: XMLHttpRequest\` como verificación
-- Dado que se usan cookies HttpOnly, el patrón \`SameSite=Strict\` + verificar \`Origin\`/\`Referer\` headers es suficiente.
+## Solucion sugerida
+- Verificar headers \`Origin\`/\`Referer\` en rutas sensibles.
+- Dado que se usan cookies \`SameSite=Strict\` en produccion, el riesgo es menor en prod pero alto en desarrollo (\`SameSite=lax\`).
 
 **Archivo:** \`backend/src/app.ts\`" \
   "security,severity:high"
 
-# ── Issue 7 ──────────────────────────────────────────────────────────────────
 create_issue \
-  "[Bug][High] Notifications route: /read-all conflicts with /:id/read" \
-  "## Descripción
-En \`backend/src/routes/notifications.ts:132\`, el endpoint \`PATCH /read-all\` está definido **después** de \`PATCH /:id/read\`. Express resuelve la ruta \`/read-all\` como \`/:id/read\` con \`id='read-all'\`, causando un error en lugar de marcar todas las notificaciones como leídas.
+  "[Bug][High] PATCH /notifications/read-all conflicts with /:id/read route" \
+  "## Descripcion
+En \`backend/src/routes/notifications.ts\`, el endpoint \`PATCH /read-all\` esta definido DESPUES de \`PATCH /:id/read\`. Express resuelve \`/read-all\` como \`/:id/read\` con id='read-all', causando un error de Prisma.
 
 ## Pasos para reproducir
-1. Autenticarse
-2. Hacer \`PATCH /api/notifications/read-all\`
-3. Recibe 404 o error de Prisma (id inválido)
+1. Autenticarse con cualquier cuenta
+2. \`PATCH /api/notifications/read-all\`
+3. Recibe error de Prisma (id invalido) en lugar de marcar todas como leidas
 
-## Solución sugerida
-Reordenar las rutas poniendo \`/read-all\` y \`/unread-count\` **antes** de \`/:id\` en el router.
+## Solucion sugerida
+Reordenar las rutas en el router: poner \`/read-all\` y \`/unread-count\` ANTES de \`/:id\`.
 
-**Archivo:** \`backend/src/routes/notifications.ts:132\`" \
+**Archivo:** \`backend/src/routes/notifications.ts:131\`" \
   "bug,severity:high"
 
-# ── Issue 8 ──────────────────────────────────────────────────────────────────
 create_issue \
-  "[Security][High] Missing max-length validation on all text input fields" \
-  "## Descripción
-Los schemas Zod en las rutas no tienen límite de longitud máxima para campos de texto:
+  "[Security][High] No max-length validation on text input fields (DoS risk)" \
+  "## Descripcion
+Los schemas Zod no tienen limite de longitud maxima para campos de texto:
+
 \`\`\`ts
-title: z.string().min(1)         // sin .max()
+title: z.string().min(2)          // sin .max()
 description: z.string().optional() // sin .max()
 \`\`\`
 
 ## Impacto
-Un atacante puede enviar strings de varios MB, causando lentitud en búsquedas de texto completo, uso excesivo de almacenamiento y posibles errores OOM.
+Un atacante puede enviar strings de varios MB, causando lentitud en busquedas full-text, uso excesivo de almacenamiento y errores OOM.
 
-## Solución sugerida
-Añadir \`.max()\` a todos los campos:
-- Títulos: \`.max(255)\`
-- Descripciones: \`.max(5000)\`
-- Nombres de usuario: \`.max(100)\`
+## Solucion sugerida
+Anadir \`.max()\` a todos los campos: titulos \`.max(255)\`, descripciones \`.max(5000)\`.
 
-**Archivos:** \`backend/src/routes/assignments.ts\`, \`courses.ts\`, \`exams.ts\`, \`projects.ts\`" \
+**Archivos:** \`assignments.ts\`, \`courses.ts\`, \`exams.ts\`, \`projects.ts\`" \
   "security,severity:high"
 
-# ── Issue 9 ──────────────────────────────────────────────────────────────────
 create_issue \
-  "[Security][High] Email enumeration via 'Email already registered' error" \
-  "## Descripción
-En \`backend/src/routes/auth.ts:99\`, el endpoint de registro devuelve un mensaje diferente dependiendo de si el email existe:
+  "[Security][High] Email enumeration via 'Email already registered' on register" \
+  "## Descripcion
+El endpoint de registro devuelve mensaje diferente si el email existe:
+
 \`\`\`ts
 res.status(409).json({ message: 'Email already registered' })
 \`\`\`
 
 ## Impacto
-Permite a atacantes enumerar qué emails están registrados en la plataforma, facilitando ataques de phishing dirigido.
+Permite enumerar que emails estan registrados, facilitando ataques de phishing dirigido.
 
-## Solución sugerida
-Devolver siempre el mismo mensaje genérico, o simplemente devolver 200 sin indicar si el email existía. Añadir rate limiting específico al endpoint de registro.
+## Solucion sugerida
+Devolver siempre el mismo mensaje generico o status 200 sin indicar si el email existia.
 
 **Archivo:** \`backend/src/routes/auth.ts:99\`" \
   "security,severity:high"
 
+# ─────────────────────────────────────────────────────────────────────────────
 echo ""
 echo "▶ MEDIOS"
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ── Issue 10 ─────────────────────────────────────────────────────────────────
 create_issue \
   "[Security][Medium] Missing Content-Security-Policy header" \
-  "## Descripción
-Helmet está configurado pero sin una política CSP explícita. La política por defecto puede ser demasiado permisiva.
+  "## Descripcion
+Helmet esta configurado sin una politica CSP explicita.
 
 ## Impacto
-Sin CSP, ataques XSS pueden ejecutar scripts arbitrarios, robar cookies y credenciales.
+Sin CSP, ataques XSS pueden ejecutar scripts arbitrarios y robar credenciales.
 
-## Solución sugerida
+## Solucion sugerida
+Configurar helmet con CSP explicito:
 \`\`\`ts
 app.use(helmet({
   contentSecurityPolicy: {
@@ -248,9 +306,7 @@ app.use(helmet({
       styleSrc: [\"'self'\", \"'unsafe-inline'\"],
       imgSrc: [\"'self'\", \"data:\", \"https:\"],
       connectSrc: [\"'self'\"],
-      fontSrc: [\"'self'\"],
       objectSrc: [\"'none'\"],
-      upgradeInsecureRequests: [],
     },
   },
 }))
@@ -259,32 +315,30 @@ app.use(helmet({
 **Archivo:** \`backend/src/app.ts:46\`" \
   "security,severity:medium"
 
-# ── Issue 11 ─────────────────────────────────────────────────────────────────
 create_issue \
-  "[Security][Medium] Swagger UI /api/docs accessible without authentication" \
-  "## Descripción
-La documentación Swagger en \`/api/docs\` es pública y no requiere autenticación. Expone toda la estructura de la API en producción.
+  "[Security][Medium] Swagger UI /api/docs publicly accessible in production" \
+  "## Descripcion
+La documentacion Swagger es publica y no requiere autenticacion, exponiendo la estructura completa de la API.
 
 ## Impacto
-Facilita el reconocimiento de la API por parte de atacantes: endpoints, schemas, parámetros, tipos de datos.
+Facilita reconocimiento de la API: endpoints, schemas, parametros y tipos de datos a atacantes.
 
-## Solución sugerida
-En producción, desactivar o proteger \`/api/docs\` con autenticación básica o solo habilitarlo cuando \`NODE_ENV !== 'production'\`.
+## Solucion sugerida
+Desactivar en produccion: \`if (!isProd) app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(...))\`
 
 **Archivo:** \`backend/src/app.ts:54\`" \
   "security,severity:medium"
 
-# ── Issue 12 ─────────────────────────────────────────────────────────────────
 create_issue \
   "[Security][Medium] Missing HSTS header in nginx production config" \
-  "## Descripción
-El archivo \`frontend/nginx.conf\` no incluye el header \`Strict-Transport-Security\`. Los navegadores no aplican HTTPS estrictamente.
+  "## Descripcion
+\`frontend/nginx.conf\` no incluye el header \`Strict-Transport-Security\`.
 
 ## Impacto
-Posibles ataques de downgrade SSL/TLS. Los navegadores no marcan el sitio como HTTPS-only.
+Los navegadores no aplican HTTPS estrictamente, abriendo la puerta a ataques de downgrade SSL/TLS.
 
-## Solución sugerida
-Añadir en \`nginx.conf\` dentro del bloque \`server\`:
+## Solucion sugerida
+Anadir en el bloque \`server\` de nginx.conf:
 \`\`\`nginx
 add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;
 \`\`\`
@@ -292,85 +346,76 @@ add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" alw
 **Archivo:** \`frontend/nginx.conf\`" \
   "security,severity:medium"
 
-# ── Issue 13 ─────────────────────────────────────────────────────────────────
 create_issue \
-  "[Security][Medium] Missing security audit logging for auth events" \
-  "## Descripción
-No existe registro de auditoría para eventos de seguridad: intentos de login fallidos, cambios de contraseña, tokens refresh, etc.
+  "[Security][Medium] No security audit logging for authentication events" \
+  "## Descripcion
+No existe registro de auditoria para eventos de seguridad (logins fallidos, cambios de contrasena, refresh de tokens).
 
 ## Impacto
-Imposible detectar ataques de fuerza bruta, accesos no autorizados o actividad sospechosa en producción.
+Imposible detectar ataques de fuerza bruta o accesos no autorizados en produccion.
 
-## Solución sugerida
-Añadir logging estructurado (pino) para:
-- Login exitoso/fallido (con IP y timestamp)
-- Logout
-- Cambio de contraseña / reset
-- Token refresh
-- Errores de autenticación repetidos
+## Solucion sugerida
+Anadir logging estructurado (pino) para: login exitoso/fallido con IP, logout, cambio de contrasena, token refresh, errores repetidos de autenticacion.
 
 **Archivo:** \`backend/src/routes/auth.ts\`" \
   "security,severity:medium"
 
-# ── Issue 14 ─────────────────────────────────────────────────────────────────
 create_issue \
-  "[Security][Medium] Raw SQL in search endpoint needs input length limit" \
-  "## Descripción
-En \`backend/src/routes/search.ts\`, se usa \`prisma.\$queryRaw\` con \`websearch_to_tsquery\` y el input del usuario. Aunque Prisma parametriza la query, no hay límite de longitud en el parámetro de búsqueda.
+  "[Security][Medium] Search query param missing max-length limit" \
+  "## Descripcion
+El parametro \`q\` en el endpoint de busqueda no tiene limite de longitud:
+\`\`\`ts
+q: z.string().min(1)  // sin .max()
+\`\`\`
+Se usa directamente en \`websearch_to_tsquery\` de PostgreSQL.
 
-## Solución sugerida
-Añadir validación explícita al schema:
+## Solucion sugerida
 \`\`\`ts
 q: z.string().min(1).max(500).trim()
 \`\`\`
 
-**Archivo:** \`backend/src/routes/search.ts:88-130\`" \
+**Archivo:** \`backend/src/routes/search.ts:47\`" \
   "security,severity:medium"
 
+# ─────────────────────────────────────────────────────────────────────────────
 echo ""
 echo "▶ BAJOS"
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ── Issue 15 ─────────────────────────────────────────────────────────────────
 create_issue \
   "[Config][Low] Inconsistent pagination limits across routes" \
-  "## Descripción
-Distintas rutas usan límites de paginación diferentes:
-- assignments, exams, projects, search: \`.max(50)\`
-- notifications: \`.max(100)\`
+  "## Descripcion
+Distintas rutas usan limites de paginacion diferentes (max 50 vs max 100).
 
-## Solución sugerida
-Estandarizar a \`.max(50)\` en todas las rutas o extraer a una constante global \`MAX_PAGE_SIZE = 50\`.
+## Solucion sugerida
+Estandarizar a \`.max(50)\` en todas las rutas o extraer a constante global \`MAX_PAGE_SIZE\`.
 
 **Archivos:** \`backend/src/routes/\`" \
   "config,severity:low"
 
-# ── Issue 16 ─────────────────────────────────────────────────────────────────
 create_issue \
-  "[Bug][Low] grade-projection endpoint: missing validation on 'target' query param" \
-  "## Descripción
-En \`backend/src/routes/courses.ts:285\`, el parámetro \`target\` se convierte a número pero no tiene validación de rango:
+  "[Bug][Low] grade-projection: missing range validation on 'target' param" \
+  "## Descripcion
+El parametro \`target\` en grade-projection no tiene validacion de rango:
 \`\`\`ts
 target: z.coerce.number().default(7)
 \`\`\`
+Valores negativos o >10 producen proyecciones absurdas.
 
-Un usuario puede pasar valores negativos, 0 o 1000, produciendo proyecciones absurdas.
-
-## Solución sugerida
+## Solucion sugerida
 \`\`\`ts
 target: z.coerce.number().min(0).max(10).default(7)
 \`\`\`
 
-**Archivo:** \`backend/src/routes/courses.ts:285\`" \
+**Archivo:** \`backend/src/routes/courses.ts\`" \
   "bug,severity:low"
 
-# ── Issue 17 ─────────────────────────────────────────────────────────────────
 create_issue \
-  "[Config][Low] Redis retry strategy may cause slowdowns with maxRetriesPerRequest: null" \
-  "## Descripción
-En \`backend/src/lib/queue.ts\`, la configuración de BullMQ/ioredis usa \`maxRetriesPerRequest: null\` que permite reintentos infinitos, bloqueando workers indefinidamente en caso de Redis inaccesible.
+  "[Config][Low] Redis maxRetriesPerRequest: null may cause indefinite blocking" \
+  "## Descripcion
+La config de BullMQ usa \`maxRetriesPerRequest: null\`, permitiendo reintentos infinitos y bloqueando workers si Redis esta inaccesible.
 
-## Solución sugerida
-Limitar reintentos:
+## Solucion sugerida
 \`\`\`ts
 maxRetriesPerRequest: 3,
 retryStrategy: (times) => Math.min(times * 100, 2000),
@@ -379,20 +424,19 @@ retryStrategy: (times) => Math.min(times * 100, 2000),
 **Archivo:** \`backend/src/lib/queue.ts\`" \
   "config,severity:low"
 
-# ── Issue 18 ─────────────────────────────────────────────────────────────────
 create_issue \
-  "[Config][Low] render.yaml: FRONTEND_URL and BACKEND_INTERNAL_URL require manual setup post-deploy" \
-  "## Descripción
-Las variables \`FRONTEND_URL\` y \`BACKEND_INTERNAL_URL\` en \`render.yaml\` están marcadas \`sync: false\`, requiriendo configuración manual post-deploy. Esto es propenso a errores y no está automatizado.
+  "[Config][Low] render.yaml variables require manual post-deploy configuration" \
+  "## Descripcion
+Las variables \`FRONTEND_URL\` y \`BACKEND_INTERNAL_URL\` en render.yaml estan marcadas \`sync: false\`, requiriendo configuracion manual post-deploy y siendo propensas a errores.
 
-## Solución sugerida
-Documentar el proceso en el README con pasos exactos. Evaluar usar Render's \`fromService\` para la URL pública cuando esté disponible.
+## Solucion sugerida
+Documentar en el README los pasos exactos necesarios post-deploy. Evaluar automatizacion via Render API o scripts de inicializacion.
 
 **Archivo:** \`render.yaml:43,64\`" \
   "config,severity:low"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  ✓ Issues creados: 18"
+echo "  Issues creados: 18"
 echo "  Ver en: https://github.com/$REPO/issues"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
