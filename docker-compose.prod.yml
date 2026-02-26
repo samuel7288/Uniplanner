@@ -1,9 +1,10 @@
 # Production-ready compose file.
 # Uses compiled builds (not ts-node-dev / Vite dev server).
-# Requires HTTPS termination via a reverse proxy (nginx, Traefik, etc.) in front.
+# Caddy handles HTTPS termination automatically via Let's Encrypt.
 #
 # Usage:
-#   docker compose -f docker-compose.prod.yml up -d --build
+#   1. Copy .env.production to .env and fill in your values
+#   2. docker compose -f docker-compose.prod.yml up -d --build
 
 services:
   db:
@@ -69,8 +70,9 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
     # Run migrations (not push) in production, then start compiled server
     command: sh -c "npx prisma migrate deploy && npm start"
-    ports:
-      - "${BACKEND_PORT:-4000}:4000"
+    # No public ports — Caddy proxies /api traffic to this container
+    expose:
+      - "4000"
     networks:
       - internal
       - external
@@ -83,14 +85,37 @@ services:
     restart: always
     depends_on:
       - backend
+    # No public ports — Caddy proxies traffic to this container
+    expose:
+      - "80"
+    networks:
+      - external
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: uniplanner-caddy
+    restart: always
+    depends_on:
+      - frontend
+      - backend
     ports:
       - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # TLS certificates
+      - caddy_config:/config   # Caddy runtime config
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
     networks:
       - external
 
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   internal:
