@@ -16,7 +16,10 @@ RUN npm run build
 FROM nginx:1.27-alpine AS runtime
 
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy as template so envsubst can inject BACKEND_INTERNAL_URL at start time.
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Substitute only ${BACKEND_INTERNAL_URL}; leave nginx's own $variables untouched.
+CMD ["/bin/sh", "-c", \
+  "envsubst '${BACKEND_INTERNAL_URL}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

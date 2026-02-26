@@ -28,4 +28,6 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY prisma ./prisma/
 
 EXPOSE 4000
-CMD ["node", "dist/server.js"]
+# Run migrations then start the server.
+# docker-compose.prod.yml overrides this command; Render uses it directly.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/server.js"]

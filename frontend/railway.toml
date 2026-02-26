@@ -1,0 +1,12 @@
+# Railway configuration for the UniPlanner frontend service.
+# In the Railway dashboard, set this service's root directory to /frontend.
+
+[build]
+dockerfilePath = "Dockerfile.prod"
+
+[deploy]
+# BACKEND_INTERNAL_URL must be set in Railway environment variables:
+#   http://<backend-service-name>.railway.internal:4000
+# The nginx container substitutes this at startup via envsubst.
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
