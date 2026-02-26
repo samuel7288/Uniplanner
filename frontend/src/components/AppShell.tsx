@@ -23,6 +23,7 @@ import { api } from "../lib/api";
 import type { DashboardSummary, SearchItem, SearchResponse } from "../lib/types";
 import { BottomNav } from "./BottomNav";
 import { BreadcrumbBar } from "./BreadcrumbBar";
+import { InstallPrompt } from "./InstallPrompt";
 import { OnboardingTour } from "./OnboardingTour";
 import { Button } from "./UI";
 
@@ -659,6 +660,9 @@ export function AppShell({ children }: PropsWithChildren) {
         onPrev={() => setOnboardingStep((prev) => Math.max(0, prev - 1))}
         onClose={closeOnboarding}
       />
+
+      {/* PWA install banner */}
+      <InstallPrompt />
     </div>
   );
 }
