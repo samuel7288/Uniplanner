@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sin conexión – UniPlanner</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: #f8fafc;
+        color: #1e293b;
+        display: flex;
+        min-height: 100svh;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #0f172a; color: #e2e8f0; }
+        .card { background: #1e293b; border-color: #334155; }
+        .icon-bg { background: #1d4ed8; }
+        .btn { background: #0ea5e9; }
+        .btn:hover { background: #0284c7; }
+      }
+      .card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 1.5rem;
+        padding: 2.5rem 2rem;
+        max-width: 24rem;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+      }
+      .icon-bg {
+        background: #e0f2fe;
+        border-radius: 50%;
+        width: 4rem;
+        height: 4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.25rem;
+      }
+      .icon-bg svg { width: 1.75rem; height: 1.75rem; color: #0ea5e9; }
+      h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+      p { font-size: 0.875rem; color: #64748b; line-height: 1.6; margin-bottom: 1.5rem; }
+      @media (prefers-color-scheme: dark) { p { color: #94a3b8; } }
+      .btn {
+        display: inline-block;
+        background: #0ea5e9;
+        color: white;
+        border: none;
+        border-radius: 0.75rem;
+        padding: 0.65rem 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.15s;
+      }
+      .btn:hover { background: #0284c7; }
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        text-decoration: none;
+      }
+      .logo-badge {
+        background: #dbeafe;
+        color: #1d4ed8;
+        border-radius: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        font-family: monospace;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .logo-name { font-size: 1.125rem; font-weight: 700; color: #1e293b; }
+      @media (prefers-color-scheme: dark) {
+        .logo-badge { background: #1e3a8a; color: #93c5fd; }
+        .logo-name { color: #f1f5f9; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <a href="/" class="logo">
+        <span class="logo-badge">UP</span>
+        <span class="logo-name">UniPlanner</span>
+      </a>
+      <div class="icon-bg">
+        <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+        </svg>
+      </div>
+      <h1>Sin conexión a internet</h1>
+      <p>
+        No hay conexión disponible en este momento.
+        UniPlanner necesita internet para sincronizar tus datos.
+        Reconéctate y vuelve a intentarlo.
+      </p>
+      <button class="btn" onclick="window.location.reload()">
+        Reintentar
+      </button>
+    </div>
+  </body>
+</html>
