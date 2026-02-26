@@ -6,6 +6,7 @@ type MailInput = {
   subject: string;
   text: string;
   html?: string;
+  sensitive?: boolean;
 };
 
 function smtpConfigured(): boolean {
@@ -32,11 +33,15 @@ function getTransporter(): nodemailer.Transporter {
 
 export async function sendEmail(payload: MailInput): Promise<void> {
   if (!smtpConfigured()) {
-    console.log("[EMAIL SIMULATION]", {
+    const simulatedLog = {
       from: env.EMAIL_FROM,
       to: payload.to,
       subject: payload.subject,
-      text: payload.text,
+      text: payload.sensitive ? "[REDACTED]" : payload.text,
+    };
+
+    console.log("[EMAIL SIMULATION]", {
+      ...simulatedLog,
     });
     return;
   }

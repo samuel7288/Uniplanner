@@ -3,6 +3,7 @@ import { Redis } from "ioredis";
 import { env } from "../config/env";
 
 export const redisConnection = new Redis(env.REDIS_URL, {
+  password: env.REDIS_PASSWORD,
   maxRetriesPerRequest: null,
   lazyConnect: true,
   retryStrategy: (times) => Math.min(times * 200, 5000),

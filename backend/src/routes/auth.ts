@@ -231,11 +231,8 @@ router.post(
         to: user.email,
         subject: "UniPlanner password reset",
         text: `Reset your password: ${resetLink}`,
+        sensitive: true,
       });
-
-      if (!env.SMTP_HOST) {
-        process.stdout.write(`[PASSWORD RESET TOKEN] ${rawToken}\n`);
-      }
     }
 
     res.json({ message: "If the email exists, a reset instruction has been sent" });
