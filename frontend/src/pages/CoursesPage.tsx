@@ -3,6 +3,7 @@ import { api, getErrorMessage } from "../lib/api";
 import type { Course, Grade } from "../lib/types";
 import { Alert, Button, Card, EmptyState, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ImportCoursesModal } from "../components/ImportCoursesModal";
 
 type CourseDetail = Course & {
   classSessions: Array<{
@@ -28,6 +29,7 @@ export function CoursesPage() {
     neededAverageForTarget: number | null;
     feasible: boolean;
   } | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [target, setTarget] = useState("7");
   const [error, setError] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -67,6 +69,7 @@ export function CoursesPage() {
     if (!selectedCourseId && response.data.length > 0) {
       setSelectedCourseId(response.data[0].id);
     }
+    return response.data;
   }
 
   async function loadDetail(courseId: string) {
@@ -173,6 +176,20 @@ export function CoursesPage() {
     formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  async function handleImportedCourses(): Promise<void> {
+    const loadedCourses = await loadCourses();
+    const hasCurrentCourse = loadedCourses.some((course) => course.id === selectedCourseId);
+    const nextCourseId = hasCurrentCourse ? selectedCourseId : (loadedCourses[0]?.id ?? "");
+
+    setSelectedCourseId(nextCourseId);
+    if (nextCourseId) {
+      await loadDetail(nextCourseId);
+    } else {
+      setDetail(null);
+      setProjection(null);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageTitle title="Materias" subtitle="CRUD de materias, horario por materia y analitica de notas" />
@@ -182,7 +199,12 @@ export function CoursesPage() {
       <div className="grid gap-4 lg:grid-cols-[380px,1fr]">
         <Card>
           <div ref={formAnchorRef} className="scroll-mt-28" />
-          <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">Nueva materia</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">Nueva materia</h2>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setImportModalOpen(true)}>
+              Importar Excel
+            </Button>
+          </div>
           <form className="mt-3 grid gap-3" onSubmit={createCourse}>
             <Field label="Nombre">
               <TextInput
@@ -441,6 +463,12 @@ export function CoursesPage() {
           setConfirmDeleteOpen(false);
         }}
         onCancel={() => setConfirmDeleteOpen(false)}
+      />
+
+      <ImportCoursesModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImported={handleImportedCourses}
       />
     </div>
   );

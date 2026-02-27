@@ -3,6 +3,7 @@ import { calculateCourseProjection } from "../utils/grading";
 import type {
   AddSessionBody,
   CreateCourseBody,
+  ImportCourseRow,
   UpdateCourseBody,
   UpdateSessionBody,
 } from "../validators/coursesValidators";
@@ -197,4 +198,77 @@ export async function getGradeProjection(userId: string, courseId: string, targe
     target,
     ...projection,
   };
+}
+
+export async function importCourses(userId: string, rows: ImportCourseRow[]) {
+  return prisma.$transaction(async (tx) => {
+    const errors: string[] = [];
+    let created = 0;
+    let skipped = 0;
+
+    const normalizedRows = rows.map((row) => ({
+      ...row,
+      name: row.name.trim(),
+      code: row.code.trim(),
+      teacher: row.teacher?.trim() || null,
+      semester: row.semester?.trim() || null,
+      color: row.color?.trim() || null,
+      sessions: row.sessions?.map((session) => ({
+        ...session,
+        room: session.room?.trim() || null,
+      })) ?? [],
+    }));
+
+    const importCodes = Array.from(new Set(normalizedRows.map((row) => row.code)));
+    const existingCodes = new Set(
+      (
+        await tx.course.findMany({
+          where: {
+            userId,
+            code: { in: importCodes },
+          },
+          select: { code: true },
+        })
+      ).map((course) => course.code),
+    );
+
+    const seenCodes = new Set<string>();
+
+    for (const row of normalizedRows) {
+      if (seenCodes.has(row.code) || existingCodes.has(row.code)) {
+        skipped += 1;
+        continue;
+      }
+
+      seenCodes.add(row.code);
+
+      await tx.course.create({
+        data: {
+          userId,
+          name: row.name,
+          code: row.code,
+          teacher: row.teacher,
+          credits: row.credits ?? null,
+          color: row.color,
+          semester: row.semester,
+          classSessions:
+            row.sessions.length > 0
+              ? {
+                  create: row.sessions.map((session) => ({
+                    dayOfWeek: session.dayOfWeek,
+                    startTime: session.startTime,
+                    endTime: session.endTime,
+                    room: session.room,
+                    modality: session.modality,
+                  })),
+                }
+              : undefined,
+        },
+      });
+
+      created += 1;
+    }
+
+    return { created, skipped, errors };
+  });
 }

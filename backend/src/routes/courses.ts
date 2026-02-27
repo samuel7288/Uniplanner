@@ -7,6 +7,7 @@ import {
   getCourseHandler,
   getGradeProjectionHandler,
   getWeeklyScheduleHandler,
+  importCoursesHandler,
   listCoursesHandler,
   updateCourseHandler,
   updateSessionHandler,
@@ -17,6 +18,7 @@ import {
   addSessionSchema,
   createCourseSchema,
   gradeProjectionSchema,
+  importCoursesSchema,
   updateCourseSchema,
   updateSessionSchema,
 } from "../validators/coursesValidators";
@@ -28,6 +30,7 @@ router.use(requireAuth);
 router.get("/schedule/weekly", getWeeklyScheduleHandler);
 router.get("/", listCoursesHandler);
 router.post("/", validate(createCourseSchema), createCourseHandler);
+router.post("/import", validate(importCoursesSchema), importCoursesHandler);
 router.get("/:id", getCourseHandler);
 router.put("/:id", validate(updateCourseSchema), updateCourseHandler);
 router.delete("/:id", deleteCourseHandler);
