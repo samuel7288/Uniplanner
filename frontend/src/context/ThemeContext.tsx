@@ -1,4 +1,4 @@
-import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 export type ThemePreset = "ocean" | "forest" | "sunset" | "violet";
 
@@ -63,21 +63,21 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     localStorage.setItem("uniplanner_preset", preset);
   }, [preset]);
 
-  function toggleDark() {
+  const toggleDark = useCallback(() => {
     setIsDark((prev) => !prev);
-  }
+  }, []);
 
-  function setDarkMode(value: boolean) {
+  const setDarkMode = useCallback((value: boolean) => {
     setIsDark(value);
-  }
+  }, []);
 
-  function setPreset(p: ThemePreset) {
+  const setPreset = useCallback((p: ThemePreset) => {
     setPresetState(p);
-  }
+  }, []);
 
   const value = useMemo<ThemeContextValue>(
     () => ({ isDark, toggleDark, setDarkMode, preset, setPreset }),
-    [isDark, preset],
+    [isDark, preset, toggleDark, setDarkMode, setPreset],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
