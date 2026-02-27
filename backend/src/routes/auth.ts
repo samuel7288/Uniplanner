@@ -5,6 +5,7 @@ import { z } from "zod";
 import { env, isProd } from "../config/env";
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
+import { requestSchema } from "../lib/validate";
 import {
   createAccessToken,
   createRefreshToken,
@@ -28,7 +29,7 @@ const COOKIE_OPTIONS = {
   maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
 };
 
-const registerSchema = z.object({
+const registerSchema = requestSchema({
   body: z.object({
     email: z.string().email(),
     password: z.string().min(8).max(72),
@@ -37,32 +38,24 @@ const registerSchema = z.object({
     university: z.string().optional(),
     timezone: z.string().optional(),
   }),
-  query: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
 });
 
-const loginSchema = z.object({
+const loginSchema = requestSchema({
   body: z.object({
     email: z.string().email(),
     password: z.string().min(8).max(72),
   }),
-  query: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
 });
 
-const forgotSchema = z.object({
+const forgotSchema = requestSchema({
   body: z.object({ email: z.string().email() }),
-  query: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
 });
 
-const resetSchema = z.object({
+const resetSchema = requestSchema({
   body: z.object({
     token: z.string().min(10),
     newPassword: z.string().min(8).max(72),
   }),
-  query: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
 });
 
 type AuthUser = { id: string; email: string; name: string };

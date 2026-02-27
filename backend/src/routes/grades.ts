@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -15,21 +16,28 @@ const gradeSchema = z.object({
   weight: z.number().positive().max(100),
 });
 
+const listGradesSchema = requestSchema({
+  query: z.object({
+    courseId: z.string().optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  }),
+});
+
+const createGradeSchema = requestSchema({
+  body: gradeSchema,
+});
+
+const updateGradeSchema = requestSchema({
+  body: gradeSchema.partial(),
+  params: z.object({ id: z.string().min(1) }),
+});
+
 router.use(requireAuth);
 
 router.get(
   "/",
-  validate(
-    z.object({
-      body: z.object({}).passthrough(),
-      params: z.object({}).passthrough(),
-      query: z.object({
-        courseId: z.string().optional(),
-        page: z.coerce.number().int().min(1).optional(),
-        limit: z.coerce.number().int().min(1).max(100).optional(),
-      }),
-    }),
-  ),
+  validate(listGradesSchema),
   asyncHandler(async (req, res) => {
     const { courseId, page, limit } = req.query as {
       courseId?: string;
@@ -76,13 +84,7 @@ router.get(
 
 router.post(
   "/",
-  validate(
-    z.object({
-      body: gradeSchema,
-      params: z.object({}).passthrough(),
-      query: z.object({}).passthrough(),
-    }),
-  ),
+  validate(createGradeSchema),
   asyncHandler(async (req, res) => {
     const course = await prisma.course.findFirst({
       where: { id: req.body.courseId, userId: req.user!.userId },
@@ -109,13 +111,7 @@ router.post(
 
 router.put(
   "/:id",
-  validate(
-    z.object({
-      body: gradeSchema.partial(),
-      params: z.object({ id: z.string().min(1) }),
-      query: z.object({}).passthrough(),
-    }),
-  ),
+  validate(updateGradeSchema),
   asyncHandler(async (req, res) => {
     const current = await prisma.grade.findFirst({
       where: {

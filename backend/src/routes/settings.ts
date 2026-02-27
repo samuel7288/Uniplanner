@@ -2,24 +2,23 @@ import bcrypt from "bcryptjs";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
 
-const updateProfileSchema = z.object({
+const updateProfileSchema = requestSchema({
   body: z.object({
     name: z.string().min(2).optional(),
     career: z.string().nullable().optional(),
     university: z.string().nullable().optional(),
     timezone: z.string().optional(),
   }),
-  query: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
 });
 
-const updatePreferencesSchema = z.object({
+const updatePreferencesSchema = requestSchema({
   body: z.object({
     notifyInApp: z.boolean().optional(),
     notifyEmail: z.boolean().optional(),
@@ -27,11 +26,9 @@ const updatePreferencesSchema = z.object({
     themePreset: z.enum(["ocean", "forest", "sunset", "violet"]).optional(),
     browserPushEnabled: z.boolean().optional(),
   }),
-  query: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
 });
 
-const changePasswordSchema = z.object({
+const changePasswordSchema = requestSchema({
   body: z
     .object({
       currentPassword: z.string().min(8).max(72),
@@ -39,10 +36,8 @@ const changePasswordSchema = z.object({
     })
     .refine((data) => data.currentPassword !== data.newPassword, {
       path: ["newPassword"],
-      message: "La nueva contraseña debe ser diferente a la actual",
+      message: "La nueva contrasena debe ser diferente a la actual",
     }),
-  query: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
 });
 
 router.use(requireAuth);
@@ -138,7 +133,7 @@ router.post(
 
     const matches = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!matches) {
-      res.status(400).json({ message: "La contraseña actual no es correcta" });
+      res.status(400).json({ message: "La contrasena actual no es correcta" });
       return;
     }
 
