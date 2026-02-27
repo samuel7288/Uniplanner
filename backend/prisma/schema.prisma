@@ -79,6 +79,7 @@ model User {
   grades        Grade[]
   gradeCategories GradeCategory[]
   pushSubscriptions PushSubscription[]
+  googleCalendarSync GoogleCalendarSync?
   notifications Notification[]
   refreshTokens RefreshToken[]
   passwordResets PasswordResetToken[]
@@ -392,4 +393,16 @@ model PushSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model GoogleCalendarSync {
+  id           Int      @id @default(autoincrement())
+  userId       String   @unique
+  accessToken  String
+  refreshToken String
+  tokenExpiry  DateTime
+  calendarId   String
+  lastSyncAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
