@@ -8,6 +8,7 @@ import type { User } from "../lib/types";
 type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
+  isServerWakingUp: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (payload: {
@@ -25,10 +26,20 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const RETRY_DELAYS_MS = [2000, 4000, 8000] as const;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function getHttpStatus(error: unknown): number | undefined {
+  return axios.isAxiosError(error) ? error.response?.status : undefined;
+}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isServerWakingUp, setIsServerWakingUp] = useState(false);
   const DEBUG_AUTH = import.meta.env.DEV;
 
   async function refreshProfile(): Promise<void> {
@@ -44,37 +55,52 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     try {
-      await refreshProfile();
-      if (DEBUG_AUTH) {
-        console.debug("[auth][bootstrap] refreshProfile success");
-      }
-    } catch (error) {
-      // Only clear stored tokens on definitive auth failure.
-      //
-      // • Network error (no response) — could be transient (offline, slow start).
-      //   Keep the access token so the next page load can restore the session
-      //   without forcing the user to log in again.
-      //
-      // • 401 — the interceptor in api.ts already attempted a token refresh and
-      //   cleared tokens when that also failed. We just ensure user state is null.
-      //
-      // • 5xx / unexpected — server-side problem, not an auth failure. Keep tokens.
-      if (DEBUG_AUTH) {
-        const status = axios.isAxiosError(error) ? (error.response?.status ?? "NO_RESPONSE") : "NON_AXIOS_ERROR";
-        console.debug("[auth][bootstrap] refreshProfile failed", {
-          status,
-          isNetworkError: isNetworkError(error),
-          willClearTokens: !isNetworkError(error),
-        });
-      }
+      for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
+        try {
+          await refreshProfile();
+          setIsServerWakingUp(false);
 
-      if (!isNetworkError(error)) {
-        // Tokens may already have been cleared by the response interceptor (on 401).
-        // Calling clearAuthTokens() here is safe (idempotent).
-        clearAuthTokens();
+          if (DEBUG_AUTH) {
+            console.debug("[auth][bootstrap] refreshProfile success", { attempt });
+          }
+          return;
+        } catch (error) {
+          const status = getHttpStatus(error);
+          const isAuthFailure = status === 401;
+          const isServerUnavailable = status === 502 || status === 503 || status === 504;
+          const canRetry = attempt < RETRY_DELAYS_MS.length;
+          const shouldRetry = canRetry && (isServerUnavailable || isNetworkError(error));
+
+          if (DEBUG_AUTH) {
+            console.debug("[auth][bootstrap] refreshProfile failed", {
+              attempt,
+              status: status ?? "NO_RESPONSE",
+              isNetworkError: isNetworkError(error),
+              isServerUnavailable,
+              isAuthFailure,
+              shouldRetry,
+            });
+          }
+
+          if (shouldRetry) {
+            setIsServerWakingUp(true);
+            await sleep(RETRY_DELAYS_MS[attempt]);
+            continue;
+          }
+
+          setIsServerWakingUp(false);
+
+          // Only clear tokens on a definitive auth failure.
+          if (isAuthFailure) {
+            clearAuthTokens();
+          }
+
+          setUser(null);
+          return;
+        }
       }
-      setUser(null);
     } finally {
+      setIsServerWakingUp(false);
       if (DEBUG_AUTH) {
         console.debug("[auth][bootstrap] end", {
           hasAccessToken: hasAccessToken(),
@@ -89,7 +115,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   async function login(email: string, password: string): Promise<void> {
-    // Backend response no longer includes refreshToken — it is set as an HttpOnly cookie.
+    // Backend response no longer includes refreshToken; it is set as an HttpOnly cookie.
     const response = await api.post("/auth/login", { email, password });
     const data = AuthResponseSchema.parse(response.data);
     setAuthTokens(data.accessToken);
@@ -114,10 +140,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   async function logout(): Promise<void> {
     try {
-      // Backend revokes the refresh token cookie
+      // Backend revokes the refresh token cookie.
       await api.post("/auth/logout", {});
     } catch {
-      // ignore logout errors and clear local auth regardless
+      // Ignore logout errors and clear local auth regardless.
     }
     clearAuthTokens();
     setUser(null);
@@ -145,6 +171,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     () => ({
       user,
       isLoading,
+      isServerWakingUp,
       isAuthenticated: Boolean(user),
       login,
       register,
@@ -153,7 +180,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       resetPassword,
       refreshProfile,
     }),
-    [user, isLoading],
+    [user, isLoading, isServerWakingUp],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
