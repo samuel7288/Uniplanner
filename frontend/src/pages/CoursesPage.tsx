@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { api, getErrorMessage } from "../lib/api";
 import type { Course, Grade } from "../lib/types";
-import { Alert, Button, Card, Field, PageTitle, TextInput } from "../components/UI";
+import { Alert, Button, Card, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
 type CourseDetail = Course & {
@@ -176,7 +176,7 @@ export function CoursesPage() {
 
       <div className="grid gap-4 lg:grid-cols-[380px,1fr]">
         <Card>
-          <h2 className="text-lg font-semibold text-slate-900">Nueva materia</h2>
+          <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">Nueva materia</h2>
           <form className="mt-3 grid gap-3" onSubmit={createCourse}>
             <Field label="Nombre">
               <TextInput
@@ -224,7 +224,7 @@ export function CoursesPage() {
           </form>
 
           <div className="mt-6 space-y-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tus materias</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">Tus materias</h3>
             {courses.map((course) => (
               <button
                 key={course.id}
@@ -232,24 +232,24 @@ export function CoursesPage() {
                 onClick={() => setSelectedCourseId(course.id)}
                 className={`w-full rounded-lg border p-3 text-left text-sm ${
                   selectedCourseId === course.id
-                    ? "border-brand-500 bg-brand-50 text-brand-800"
-                    : "border-slate-200 hover:bg-slate-50"
+                    ? "border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-400 dark:bg-brand-700/15 dark:text-brand-300"
+                    : "border-ink-200 hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800/60"
                 }`}
               >
-                <p className="font-semibold">{course.name}</p>
-                <p className="text-xs text-slate-500">{course.code}</p>
+                <p className="font-semibold text-ink-800 dark:text-ink-200">{course.name}</p>
+                <p className="text-xs text-ink-500 dark:text-ink-400">{course.code}</p>
               </button>
             ))}
           </div>
         </Card>
 
         <Card>
-          {!selectedCourse && <p className="text-sm text-slate-500">Selecciona una materia.</p>}
+          {!selectedCourse && <p className="text-sm text-ink-500 dark:text-ink-400">Selecciona una materia.</p>}
           {selectedCourse && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">{selectedCourse.name}</h2>
-                <p className="text-sm text-slate-500">
+                <h2 className="text-xl font-semibold text-ink-900 dark:text-ink-100">{selectedCourse.name}</h2>
+                <p className="text-sm text-ink-500 dark:text-ink-400">
                   {selectedCourse.code} - {selectedCourse.teacher || "Sin docente"}
                 </p>
                 <div className="mt-2">
@@ -260,17 +260,17 @@ export function CoursesPage() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Card className="bg-slate-50">
-                  <h3 className="text-sm font-semibold text-slate-800">Horario</h3>
+                <Card className="bg-ink-50 dark:bg-ink-800">
+                  <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-100">Horario</h3>
                   <div className="mt-2 space-y-2 text-sm">
                     {detail?.classSessions?.length ? (
                       detail.classSessions.map((session) => (
-                        <p key={session.id}>
+                        <p key={session.id} className="text-ink-700 dark:text-ink-300">
                           {dayLabels[session.dayOfWeek]} {session.startTime}-{session.endTime} - {session.room || session.modality}
                         </p>
                       ))
                     ) : (
-                      <p className="text-slate-500">Sin sesiones registradas.</p>
+                      <p className="text-ink-500 dark:text-ink-400">Sin sesiones registradas.</p>
                     )}
                   </div>
                   <form className="mt-3 grid gap-2" onSubmit={addSession}>
@@ -301,23 +301,22 @@ export function CoursesPage() {
                         onChange={(event) => setSessionForm((prev) => ({ ...prev, endTime: event.target.value }))}
                       />
                     </div>
-                    <select
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    <SelectInput
                       value={sessionForm.modality}
                       onChange={(event) => setSessionForm((prev) => ({ ...prev, modality: event.target.value }))}
                     >
                       <option value="PRESENTIAL">Presencial</option>
                       <option value="ONLINE">Online</option>
-                    </select>
+                    </SelectInput>
                     <Button type="submit" variant="ghost">
                       Agregar sesion
                     </Button>
                   </form>
                 </Card>
 
-                <Card className="bg-slate-50">
+                <Card className="bg-ink-50 dark:bg-ink-800">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-slate-800">Proyeccion</h3>
+                    <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-100">Proyeccion</h3>
                     <TextInput
                       type="number"
                       step="0.1"
@@ -329,7 +328,7 @@ export function CoursesPage() {
                     />
                   </div>
                   {projection ? (
-                    <div className="mt-2 text-sm text-slate-700">
+                    <div className="mt-2 text-sm text-ink-700 dark:text-ink-300">
                       <p>Promedio actual: {projection.currentAverage.toFixed(2)}</p>
                       <p>Proyeccion final: {projection.projectedFinal.toFixed(2)}</p>
                       <p>Necesitas en lo restante: {projection.neededAverageForTarget?.toFixed(2) || "-"}</p>
@@ -338,29 +337,29 @@ export function CoursesPage() {
                       </p>
                     </div>
                   ) : (
-                    <p className="mt-2 text-sm text-slate-500">Sin datos.</p>
+                    <p className="mt-2 text-sm text-ink-500 dark:text-ink-400">Sin datos.</p>
                   )}
                 </Card>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
-                <Card className="bg-slate-50">
-                  <h3 className="text-sm font-semibold text-slate-800">Evaluaciones</h3>
+                <Card className="bg-ink-50 dark:bg-ink-800">
+                  <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-100">Evaluaciones</h3>
                   <div className="mt-2 space-y-2 text-sm">
                     {detail?.grades?.length ? (
                       detail.grades.map((grade) => (
-                        <p key={grade.id}>
+                        <p key={grade.id} className="text-ink-700 dark:text-ink-300">
                           {grade.name}: {grade.score}/{grade.maxScore} (peso {grade.weight}%)
                         </p>
                       ))
                     ) : (
-                      <p className="text-slate-500">Aun no hay evaluaciones.</p>
+                      <p className="text-ink-500 dark:text-ink-400">Aun no hay evaluaciones.</p>
                     )}
                   </div>
                 </Card>
 
-                <Card className="bg-slate-50">
-                  <h3 className="text-sm font-semibold text-slate-800">Agregar evaluacion</h3>
+                <Card className="bg-ink-50 dark:bg-ink-800">
+                  <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-100">Agregar evaluacion</h3>
                   <form className="mt-2 grid gap-2" onSubmit={addGrade}>
                     <TextInput
                       placeholder="Nombre"

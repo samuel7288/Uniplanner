@@ -159,7 +159,7 @@ export function NotificationsPage() {
 
         <div className="rounded-2xl border border-ink-200 bg-ink-50/35 p-3">
           <div className="grid gap-3 md:grid-cols-5">
-            <label className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-700">
+            <label className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300">
               <input
                 type="checkbox"
                 checked={filters.unreadOnly}
@@ -216,18 +216,22 @@ export function NotificationsPage() {
             {notifications.map((notification) => (
               <article
                 key={notification.id}
-                className={notification.read ? "rounded-2xl border border-ink-200 bg-white p-4" : "rounded-2xl border border-brand-100 bg-brand-50/50 p-4"}
+                className={
+                  notification.read
+                    ? "rounded-2xl border border-ink-200 bg-white p-4 dark:border-ink-700 dark:bg-[var(--surface)]"
+                    : "rounded-2xl border border-brand-100 bg-brand-50/50 p-4 dark:border-brand-700/40 dark:bg-brand-700/15"
+                }
               >
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-semibold text-ink-900">{notification.title}</h3>
+                  <h3 className="font-semibold text-ink-900 dark:text-ink-100">{notification.title}</h3>
                   <div className="flex items-center gap-2">
                     <Badge tone={notificationTone(notification.type)}>{notification.type}</Badge>
                     {!notification.read && <Badge tone="brand">Nueva</Badge>}
                   </div>
                 </div>
-                <p className="text-sm text-ink-700">{notification.message}</p>
+                <p className="text-sm text-ink-700 dark:text-ink-300">{notification.message}</p>
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-ink-500">
+                  <p className="text-xs text-ink-500 dark:text-ink-400">
                     {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                   </p>
                   {!notification.read && (

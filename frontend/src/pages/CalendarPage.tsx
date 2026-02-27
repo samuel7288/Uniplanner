@@ -232,7 +232,7 @@ export function CalendarPage() {
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label
-              className="mb-1 block text-sm font-medium text-slate-700"
+              className="mb-1 block text-sm font-medium text-ink-700 dark:text-ink-300"
               htmlFor="courseFilter"
             >
               Filtrar por materia
@@ -255,7 +255,7 @@ export function CalendarPage() {
             {eventTypes.map((type) => (
               <label
                 key={type}
-                className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm"
+                className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300"
               >
                 <input
                   type="checkbox"

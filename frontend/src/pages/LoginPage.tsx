@@ -52,7 +52,7 @@ export function LoginPage() {
         footer={
           <p>
             No tienes cuenta?{" "}
-            <Link className="font-semibold text-brand-700" to="/register">
+            <Link className="font-semibold text-brand-700 dark:text-brand-400" to="/register">
               Registrate
             </Link>
           </p>
@@ -89,7 +89,7 @@ export function LoginPage() {
             {isSubmitting ? "Entrando..." : "Entrar"}
           </Button>
 
-          <Link className="text-sm font-medium text-brand-700" to="/forgot-password">
+          <Link className="text-sm font-medium text-brand-700 dark:text-brand-400" to="/forgot-password">
             Olvide mi password
           </Link>
         </form>
