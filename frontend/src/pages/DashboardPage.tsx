@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import { api, getErrorMessage } from "../lib/api";
 import { DashboardSummarySchema } from "../lib/schemas";
+import { useWeeklyLoad } from "../hooks/useWeeklyLoad";
+import { WeeklyLoadChart } from "./dashboard/WeeklyLoadChart";
 import type { Assignment, Course, DashboardSummary, WeeklyPlanResponse } from "../lib/types";
 import { Alert, Badge, Button, Card, DashboardSkeleton, EmptyState, Field, PageTitle, SelectInput, StatCard } from "../components/UI";
 
@@ -70,6 +72,7 @@ export function DashboardPage() {
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
   const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
+  const { data: weeklyLoadData, loading: weeklyLoadLoading, error: weeklyLoadError } = useWeeklyLoad(12);
 
   useEffect(() => {
     if (!pomodoroRunning) return;
@@ -363,6 +366,12 @@ export function DashboardPage() {
               className="min-h-[10.5rem] animate-stagger-in stagger-4"
             />
           </div>
+
+          <WeeklyLoadChart
+            data={weeklyLoadData}
+            loading={weeklyLoadLoading}
+            error={weeklyLoadError}
+          />
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr,0.8fr]">
             <Card className="space-y-4">
