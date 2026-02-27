@@ -5,6 +5,10 @@ import { prisma } from "../lib/prisma";
 import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
+import {
+  getStudyReminderPreference,
+  upsertStudyReminderPreference,
+} from "../services/studyReminderPreferencesService";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
@@ -26,6 +30,13 @@ const updatePreferencesSchema = requestSchema({
     darkModePref: z.boolean().optional(),
     themePreset: z.enum(["ocean", "forest", "sunset", "midnight", "sepia", "violet"]).optional(),
     browserPushEnabled: z.boolean().optional(),
+  }),
+});
+
+const updateStudyReminderSchema = requestSchema({
+  body: z.object({
+    enabled: z.boolean().optional(),
+    minDaysWithoutStudy: z.coerce.number().int().min(1).max(14).optional(),
   }),
 });
 
@@ -110,6 +121,38 @@ router.put(
     });
 
     res.json(updated);
+  }),
+);
+
+router.get(
+  "/study-reminders",
+  asyncHandler(async (req, res) => {
+    const preference = await getStudyReminderPreference(req.user!.userId);
+    res.json({
+      enabled: preference.enabled,
+      minDaysWithoutStudy: preference.minDaysWithoutStudy,
+    });
+  }),
+);
+
+router.put(
+  "/study-reminders",
+  validate(updateStudyReminderSchema),
+  asyncHandler(async (req, res) => {
+    const { enabled, minDaysWithoutStudy } = req.body as {
+      enabled?: boolean;
+      minDaysWithoutStudy?: number;
+    };
+
+    const updated = await upsertStudyReminderPreference(req.user!.userId, {
+      enabled,
+      minDaysWithoutStudy,
+    });
+
+    res.json({
+      enabled: updated.enabled,
+      minDaysWithoutStudy: updated.minDaysWithoutStudy,
+    });
   }),
 );
 

@@ -1,9 +1,10 @@
-import { addDays, addMinutes, endOfWeek, startOfWeek, subMinutes } from "date-fns";
+import { addDays, addMinutes, differenceInCalendarDays, endOfWeek, startOfWeek, subMinutes } from "date-fns";
 import cron from "node-cron";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
 import { isRedisReady, notificationQueue, type NotificationJobData } from "./queue";
 import { listStudyGoalsInRange } from "../services/studyGoalsService";
+import { listStudyReminderPreferences } from "../services/studyReminderPreferencesService";
 
 // ── Throttle repeated dependency-unavailable warnings to once every 5 minutes ──
 const THROTTLE_MS = 5 * 60 * 1000;
@@ -249,6 +250,128 @@ async function processStudyGoalNotifications(now: Date): Promise<void> {
   }
 }
 
+function buildStudyReminderMessage(
+  daysLeft: number,
+  daysSinceStudied: number,
+  hoursThisWeek: number,
+): string {
+  if (daysLeft <= 2) {
+    return `Tu examen es en ${daysLeft} dia(s). Aprovecha el tiempo que queda.`;
+  }
+  if (daysSinceStudied >= 5) {
+    return `Llevas ${daysSinceStudied} dias sin estudiar esta materia. El examen es en ${daysLeft} dias.`;
+  }
+  if (hoursThisWeek < 1) {
+    return `Esta semana aun no estudias esta materia. Te quedan ${daysLeft} dias para el examen.`;
+  }
+  return `Llevas ${hoursThisWeek.toFixed(1)}h esta semana. El examen en ${daysLeft} dias se acerca.`;
+}
+
+async function processSmartStudyReminders(now: Date): Promise<void> {
+  if (!(now.getHours() === 9 && now.getMinutes() === 0)) return;
+
+  const in14Days = addDays(now, 14);
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const dayKey = now.toISOString().slice(0, 10);
+
+  const users = await prisma.user.findMany({
+    where: {
+      notifyInApp: true,
+    },
+    select: {
+      id: true,
+      email: true,
+      notifyEmail: true,
+    },
+  });
+  if (users.length === 0) return;
+
+  const preferences = await listStudyReminderPreferences(users.map((user) => user.id));
+
+  for (const user of users) {
+    const preference = preferences.get(user.id);
+    if (!preference || !preference.enabled) continue;
+
+    const [exams, weeklyRows, latestRows] = await Promise.all([
+      prisma.exam.findMany({
+        where: {
+          userId: user.id,
+          courseId: {
+            not: null,
+          },
+          dateTime: {
+            gte: now,
+            lte: in14Days,
+          },
+        },
+        include: {
+          course: true,
+        },
+        orderBy: {
+          dateTime: "asc",
+        },
+      }),
+      prisma
+        .$queryRaw<Array<{ courseId: string; totalMinutes: number }>>`
+          SELECT
+            "courseId",
+            COALESCE(SUM("duration"), 0)::int AS "totalMinutes"
+          FROM "StudySession"
+          WHERE "userId" = ${user.id}
+            AND "startTime" >= ${weekStart}
+            AND "startTime" <= ${weekEnd}
+          GROUP BY "courseId"
+        `
+        .catch(() => []),
+      prisma
+        .$queryRaw<Array<{ courseId: string; lastEndTime: Date }>>`
+          SELECT
+            "courseId",
+            MAX("endTime") AS "lastEndTime"
+          FROM "StudySession"
+          WHERE "userId" = ${user.id}
+          GROUP BY "courseId"
+        `
+        .catch(() => []),
+    ]);
+
+    if (exams.length === 0) continue;
+
+    const weeklyMinutesByCourse = new Map(weeklyRows.map((row) => [row.courseId, row.totalMinutes]));
+    const latestByCourse = new Map(latestRows.map((row) => [row.courseId, row.lastEndTime]));
+
+    for (const exam of exams) {
+      if (!exam.courseId) continue;
+
+      const daysLeft = differenceInCalendarDays(exam.dateTime, now);
+      if (daysLeft < 0 || daysLeft > 14) continue;
+
+      const lastSessionEnd = latestByCourse.get(exam.courseId);
+      const daysSinceStudied = lastSessionEnd ? differenceInCalendarDays(now, new Date(lastSessionEnd)) : 999;
+      const hoursThisWeek = (weeklyMinutesByCourse.get(exam.courseId) ?? 0) / 60;
+
+      const shouldNotify =
+        (daysLeft <= 7 && daysSinceStudied >= preference.minDaysWithoutStudy) ||
+        (daysLeft <= 3 && daysSinceStudied >= 1) ||
+        (daysLeft <= 5 && hoursThisWeek < 2);
+      if (!shouldNotify) continue;
+
+      const courseName = exam.course?.name ?? "esta materia";
+      await enqueue({
+        eventKey: `study-reminder:${user.id}:${exam.id}:${dayKey}`,
+        userId: user.id,
+        title: `Recuerda estudiar ${courseName}`,
+        message: buildStudyReminderMessage(daysLeft, daysSinceStudied, hoursThisWeek),
+        type: "SYSTEM",
+        scheduledFor: now.toISOString(),
+        userEmail: user.email,
+        notifyEmail: user.notifyEmail,
+      });
+    }
+  }
+}
+
 export function startScheduler(): void {
   cron.schedule("* * * * *", async () => {
     const now = new Date();
@@ -274,9 +397,16 @@ export function startScheduler(): void {
       processAssignmentReminders(now),
       processMilestoneReminders(now),
       processStudyGoalNotifications(now),
+      processSmartStudyReminders(now),
     ]);
 
-    const labels = ["ExamReminders", "AssignmentReminders", "MilestoneReminders", "StudyGoalNotifications"];
+    const labels = [
+      "ExamReminders",
+      "AssignmentReminders",
+      "MilestoneReminders",
+      "StudyGoalNotifications",
+      "SmartStudyReminders",
+    ];
     results.forEach((result, i) => {
       if (result.status === "rejected") {
         logger.error({ err: result.reason }, `Scheduler: ${labels[i]} processor failed`);

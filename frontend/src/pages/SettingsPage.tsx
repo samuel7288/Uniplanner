@@ -40,6 +40,10 @@ export function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [studyReminderPrefs, setStudyReminderPrefs] = useState({
+    enabled: true,
+    minDaysWithoutStudy: 3,
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -65,6 +69,30 @@ export function SettingsPage() {
     user?.university,
   ]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadStudyReminderPrefs() {
+      try {
+        const response = await api.get<{ enabled: boolean; minDaysWithoutStudy: number }>(
+          "/settings/study-reminders",
+        );
+        if (!active) return;
+        setStudyReminderPrefs({
+          enabled: response.data.enabled,
+          minDaysWithoutStudy: response.data.minDaysWithoutStudy,
+        });
+      } catch {
+        // no-op: keep defaults when endpoint is temporarily unavailable
+      }
+    }
+
+    void loadStudyReminderPrefs();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -84,6 +112,10 @@ export function SettingsPage() {
         darkModePref: isDark,
         themePreset: preset,
         browserPushEnabled: browserNotifEnabled,
+      });
+      await api.put("/settings/study-reminders", {
+        enabled: studyReminderPrefs.enabled,
+        minDaysWithoutStudy: studyReminderPrefs.minDaysWithoutStudy,
       });
 
       const savedProfile = UserSchema.parse(profileResponse.data);
@@ -262,6 +294,45 @@ export function SettingsPage() {
             Ver historial
           </Button>
         </div>
+      </Card>
+
+      <Card className="max-w-xl space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Recordatorios de estudio
+        </h2>
+        <p className="text-sm text-ink-600 dark:text-ink-400">
+          Recibe alertas inteligentes cuando tienes examenes proximos y llevas dias sin estudiar una materia.
+        </p>
+        <label className="inline-flex items-center gap-2 text-sm text-ink-700 dark:text-ink-300">
+          <input
+            type="checkbox"
+            checked={studyReminderPrefs.enabled}
+            onChange={(event) =>
+              setStudyReminderPrefs((prev) => ({ ...prev, enabled: event.target.checked }))
+            }
+            className="rounded border-ink-300 dark:border-ink-600"
+          />
+          Recordarme estudiar cuando tengo examen proximo
+        </label>
+        <Field label="Dias sin estudiar para activar recordatorio">
+          <select
+            value={String(studyReminderPrefs.minDaysWithoutStudy)}
+            onChange={(event) =>
+              setStudyReminderPrefs((prev) => ({
+                ...prev,
+                minDaysWithoutStudy: Number(event.target.value),
+              }))
+            }
+            className="w-full rounded-xl border border-ink-300 bg-white px-3 py-2 text-sm text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-200"
+            disabled={!studyReminderPrefs.enabled}
+          >
+            {[1, 2, 3, 4, 5, 6, 7].map((value) => (
+              <option key={value} value={value}>
+                {value} dia(s)
+              </option>
+            ))}
+          </select>
+        </Field>
       </Card>
 
       {/* Perfil */}
