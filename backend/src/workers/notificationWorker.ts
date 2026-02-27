@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import { sendEmail } from "../lib/email";
 import { logger } from "../lib/logger";
+import { sendWebPushToUser } from "../lib/push";
 import { prisma } from "../lib/prisma";
 import { redisConnection, type NotificationJobData } from "../lib/queue";
 
@@ -31,8 +32,18 @@ export function startNotificationWorker(): Worker<NotificationJobData> {
       // Only send email if notification was freshly created (not a duplicate run)
       const justCreated = Date.now() - notification.createdAt.getTime() < JUST_CREATED_THRESHOLD_MS;
 
-      if (notifyEmail && justCreated) {
-        await sendEmail({ to: userEmail, subject: title, text: message });
+      if (justCreated) {
+        if (notifyEmail) {
+          await sendEmail({ to: userEmail, subject: title, text: message });
+        }
+
+        await sendWebPushToUser(userId, {
+          title,
+          message,
+          type,
+          eventKey,
+          url: "/notifications",
+        });
       }
     },
     { connection: redisConnection, concurrency: 5 },

@@ -78,6 +78,7 @@ model User {
   projects      Project[]
   grades        Grade[]
   gradeCategories GradeCategory[]
+  pushSubscriptions PushSubscription[]
   notifications Notification[]
   refreshTokens RefreshToken[]
   passwordResets PasswordResetToken[]
@@ -378,4 +379,17 @@ model Notification {
   @@index([userId, createdAt])
   @@index([userId, read, createdAt])
   @@index([read])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  endpoint  String   @unique
+  p256dhKey String
+  authKey   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

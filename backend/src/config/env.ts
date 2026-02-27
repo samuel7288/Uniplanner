@@ -28,6 +28,9 @@ const envSchema = z.object({
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASS: optionalNonEmptyString,
   EMAIL_FROM: z.string().default("UniPlanner <no-reply@uniplanner.local>"),
+  VAPID_PUBLIC_KEY: optionalNonEmptyString,
+  VAPID_PRIVATE_KEY: optionalNonEmptyString,
+  VAPID_SUBJECT: optionalNonEmptyString,
   REDIS_URL: z.string().default("redis://localhost:6379"),
   REDIS_PASSWORD: z.string().min(16, "REDIS_PASSWORD must be at least 16 chars").optional(),
 }).superRefine((data, ctx) => {
@@ -38,6 +41,16 @@ const envSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["SMTP_HOST"],
       message: "If SMTP is configured, SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS are all required",
+    });
+  }
+
+  const vapidFields = [data.VAPID_PUBLIC_KEY, data.VAPID_PRIVATE_KEY, data.VAPID_SUBJECT];
+  const vapidDefinedCount = vapidFields.filter((value) => value !== undefined).length;
+  if (vapidDefinedCount !== 0 && vapidDefinedCount !== 3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["VAPID_PUBLIC_KEY"],
+      message: "If web push is configured, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT are all required",
     });
   }
 });

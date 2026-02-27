@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -24,9 +24,11 @@ export function SettingsPage() {
   const { isDark, toggleDark, preset, setPreset, setDarkMode } = useTheme();
   const {
     supported: browserNotifSupported,
+    pushSupported,
     enabled: browserNotifEnabled,
     permission: browserNotifPermission,
     enableWithPrompt,
+    disable: disableBrowserPush,
     setEnabled: setBrowserNotifEnabled,
     notify,
   } = useBrowserNotifications();
@@ -46,6 +48,17 @@ export function SettingsPage() {
     enabled: true,
     minDaysWithoutStudy: 3,
   });
+
+  const iosPushNeedsStandalone = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    if (!isIOS) return false;
+    const standalone =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    return !standalone;
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -262,26 +275,36 @@ export function SettingsPage() {
             <p className="text-sm text-ink-600 dark:text-ink-400">
               Recibe alertas de tareas y examenes cercanos aunque no tengas abierta la vista de notificaciones.
             </p>
+            {!pushSupported && (
+              <Alert
+                tone="warning"
+                message="Push real no disponible: este navegador solo mostrara alertas cuando la app este abierta."
+              />
+            )}
+            {iosPushNeedsStandalone && (
+              <Alert
+                tone="info"
+                message="En iOS, instala la app en pantalla de inicio (modo standalone) para recibir push en segundo plano."
+              />
+            )}
             <p className="text-xs text-ink-500 dark:text-ink-400">
               Permiso actual: <span className="font-semibold">{browserNotifPermission}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                onClick={() => {
-                  void enableWithPrompt();
-                }}
+                onClick={() => void enableWithPrompt()}
                 disabled={browserNotifPermission === "granted" && browserNotifEnabled}
               >
-                Activar navegador
+                Activar push
               </Button>
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setBrowserNotifEnabled(!browserNotifEnabled)}
-                disabled={browserNotifPermission !== "granted"}
+                onClick={() => void disableBrowserPush()}
+                disabled={!browserNotifEnabled}
               >
-                {browserNotifEnabled ? "Desactivar alertas" : "Activar alertas"}
+                Desactivar push
               </Button>
               <Button
                 type="button"
