@@ -81,6 +81,8 @@ model User {
   refreshTokens RefreshToken[]
   passwordResets PasswordResetToken[]
   tags          Tag[]
+  studySessions StudySession[]
+  studyGoals    StudyGoal[]
 }
 
 model RefreshToken {
@@ -118,6 +120,8 @@ model Course {
   credits    Int?
   color      String?
   semester   String?
+  archived   Boolean        @default(false)
+  archivedAt DateTime?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
@@ -127,9 +131,12 @@ model Course {
   exams        Exam[]
   projects     Project[]
   grades       Grade[]
+  studySessions StudySession[]
+  studyGoals   StudyGoal[]
 
   @@unique([userId, code])
   @@index([userId])
+  @@index([userId, archived])
 }
 
 model ClassSession {
@@ -153,6 +160,7 @@ model Assignment {
   title           String
   description     String?
   dueDate         DateTime
+  estimatedMinutes Int?
   priority        AssignmentPriority @default(MEDIUM)
   status          AssignmentStatus   @default(PENDING)
   repeatRule      RepeatRule         @default(NONE)
@@ -204,6 +212,13 @@ model Exam {
   location        String?
   syllabus        String?
   weight          Float?
+  obtainedGrade   Float?
+  studyHoursLogged Float?
+  feelingScore    Int?
+  retroNotes      String?
+  retroCompletedAt DateTime?
+  retroDismissed  Boolean   @default(false)
+  retroDismissedAt DateTime?
   reminderOffsets Int[]     @default([10080, 4320, 1440, 360, 60])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -285,6 +300,40 @@ model Grade {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([courseId])
+}
+
+model StudySession {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  startTime DateTime
+  endTime   DateTime
+  duration  Int
+  source    String   @default("manual")
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([userId, startTime])
+}
+
+model StudyGoal {
+  id            String   @id @default(cuid())
+  userId        String
+  courseId      String
+  weeklyMinutes Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])
 }

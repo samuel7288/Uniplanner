@@ -4,6 +4,7 @@ import type { Course, Grade } from "../lib/types";
 import { Alert, Button, Card, EmptyState, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ImportCoursesModal } from "../components/ImportCoursesModal";
+import { ScenarioSimulator } from "./grades/ScenarioSimulator";
 
 type CourseDetail = Course & {
   classSessions: Array<{
@@ -393,6 +394,10 @@ export function CoursesPage() {
                   )}
                 </Card>
               </div>
+
+              {detail && detail.id === selectedCourseId && (
+                <ScenarioSimulator courseId={selectedCourseId} grades={detail.grades ?? []} />
+              )}
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <Card className="bg-ink-50 dark:bg-ink-800">

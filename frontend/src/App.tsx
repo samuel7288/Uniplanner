@@ -9,6 +9,8 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage").then((m) => ({ de
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const TodayPage = lazy(() => import("./pages/TodayPage").then((m) => ({ default: m.TodayPage })));
+const SemesterHistoryPage = lazy(() => import("./pages/SemesterHistoryPage").then((m) => ({ default: m.SemesterHistoryPage })));
 const CoursesPage = lazy(() => import("./pages/CoursesPage").then((m) => ({ default: m.CoursesPage })));
 const SchedulePage = lazy(() => import("./pages/SchedulePage").then((m) => ({ default: m.SchedulePage })));
 const AssignmentsPage = lazy(() => import("./pages/AssignmentsPage").then((m) => ({ default: m.AssignmentsPage })));
@@ -108,11 +110,31 @@ function App() {
         }
       />
       <Route
+        path="/today"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              {withAsyncBoundary(<TodayPage />)}
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/courses"
         element={
           <ProtectedRoute>
             <AppShell>
               {withAsyncBoundary(<CoursesPage />)}
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/history"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              {withAsyncBoundary(<SemesterHistoryPage />)}
             </AppShell>
           </ProtectedRoute>
         }

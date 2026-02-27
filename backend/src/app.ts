@@ -14,6 +14,7 @@ import { csrfProtection } from "./middleware/csrf";
 import { errorHandler, notFound } from "./middleware/error";
 import { attachRequestId } from "./middleware/requestId";
 import { authRoutes } from "./routes/auth";
+import { achievementsRoutes } from "./routes/achievements";
 import { assignmentsRoutes } from "./routes/assignments";
 import { calendarRoutes } from "./routes/calendar";
 import { coursesRoutes } from "./routes/courses";
@@ -25,6 +26,9 @@ import { planningRoutes } from "./routes/planning";
 import { projectsRoutes } from "./routes/projects";
 import { searchRoutes } from "./routes/search";
 import { settingsRoutes } from "./routes/settings";
+import { studyGoalsRoutes } from "./routes/studyGoals";
+import { studySessionsRoutes } from "./routes/studySessions";
+import { todayRoutes } from "./routes/today";
 
 export const app = express();
 
@@ -125,6 +129,7 @@ app.get("/api/ready", async (_req, res) => {
 });
 
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/achievements", achievementsRoutes);
 app.use("/api/settings", mutationLimiter, settingsRoutes);
 app.use("/api/courses", mutationLimiter, coursesRoutes);
 app.use("/api/assignments", mutationLimiter, assignmentsRoutes);
@@ -136,6 +141,9 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/planning", mutationLimiter, planningRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/study-sessions", mutationLimiter, studySessionsRoutes);
+app.use("/api/study-goals", mutationLimiter, studyGoalsRoutes);
+app.use("/api/today", todayRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

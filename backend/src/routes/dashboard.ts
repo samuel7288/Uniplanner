@@ -1,4 +1,4 @@
-import { addDays, endOfDay, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, endOfDay, startOfDay } from "date-fns";
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
@@ -8,6 +8,51 @@ import { asyncHandler } from "../utils/asyncHandler";
 const router = Router();
 
 router.use(requireAuth);
+
+type CoachTone = "danger" | "warning" | "success";
+
+type CoachHint = {
+  id: string;
+  tone: CoachTone;
+  title: string;
+  message: string;
+  action: {
+    label: string;
+    href: string;
+  };
+};
+
+async function getWeeklyStudyMinutesByCourse(userId: string, from: Date, to: Date) {
+  try {
+    return await prisma.$queryRaw<Array<{ courseId: string; totalMinutes: number }>>`
+      SELECT
+        "courseId" AS "courseId",
+        COALESCE(SUM("duration"), 0)::int AS "totalMinutes"
+      FROM "StudySession"
+      WHERE "userId" = ${userId}
+        AND "startTime" >= ${from}
+        AND "startTime" <= ${to}
+      GROUP BY "courseId"
+    `;
+  } catch {
+    return [];
+  }
+}
+
+async function getLatestStudySessionByCourse(userId: string) {
+  try {
+    return await prisma.$queryRaw<Array<{ courseId: string; lastEndTime: Date }>>`
+      SELECT
+        "courseId" AS "courseId",
+        MAX("endTime") AS "lastEndTime"
+      FROM "StudySession"
+      WHERE "userId" = ${userId}
+      GROUP BY "courseId"
+    `;
+  } catch {
+    return [];
+  }
+}
 
 router.get(
   "/summary",
@@ -50,6 +95,7 @@ router.get(
         prisma.course.findMany({
           where: {
             userId: req.user!.userId,
+            archived: false,
           },
           include: {
             grades: true,
@@ -108,6 +154,156 @@ router.get(
       riskCourses,
       focusTasks,
     });
+  }),
+);
+
+router.get(
+  "/coach-hint",
+  asyncHandler(async (req, res) => {
+    const now = new Date();
+    const userId = req.user!.userId;
+    const inFiveDays = addDays(now, 5);
+    const inTenDays = addDays(now, 10);
+    const inSevenDays = addDays(now, 7);
+    const weekStart = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)));
+    const weekEnd = endOfDay(addDays(weekStart, 6));
+
+    const [courses, exams, assignments, weeklyStudyRows, lastStudyRows] = await Promise.all([
+      prisma.course.findMany({
+        where: { userId, archived: false },
+        include: { grades: true },
+      }),
+      prisma.exam.findMany({
+        where: {
+          userId,
+          dateTime: {
+            gte: now,
+            lte: inTenDays,
+          },
+        },
+        include: {
+          course: true,
+        },
+        orderBy: {
+          dateTime: "asc",
+        },
+      }),
+      prisma.assignment.findMany({
+        where: {
+          userId,
+          status: {
+            in: ["PENDING", "IN_PROGRESS"],
+          },
+          dueDate: {
+            gte: now,
+            lte: inSevenDays,
+          },
+        },
+      }),
+      getWeeklyStudyMinutesByCourse(userId, weekStart, weekEnd),
+      getLatestStudySessionByCourse(userId),
+    ]);
+
+    const projectedByCourse = new Map(
+      courses.map((course) => {
+        const projection = calculateCourseProjection(
+          course.grades.map((grade) => ({
+            score: grade.score,
+            maxScore: grade.maxScore,
+            weight: grade.weight,
+          })),
+          7,
+        );
+
+        return [course.id, Number(projection.projectedFinal.toFixed(2))];
+      }),
+    );
+
+    const weeklyMinutesByCourse = new Map(weeklyStudyRows.map((row) => [row.courseId, row.totalMinutes]));
+    const latestByCourse = new Map(lastStudyRows.map((row) => [row.courseId, row.lastEndTime]));
+
+    let recommendation: CoachHint | null = null;
+
+    for (const exam of exams) {
+      if (!exam.courseId) continue;
+      const daysUntil = differenceInCalendarDays(exam.dateTime, now);
+      if (daysUntil < 0 || daysUntil > 5) continue;
+
+      const projected = projectedByCourse.get(exam.courseId) ?? 10;
+      const weeklyMinutes = weeklyMinutesByCourse.get(exam.courseId) ?? 0;
+      if (projected >= 7 || weeklyMinutes >= 180) continue;
+
+      recommendation = {
+        id: `urgent-exam-${exam.id}`,
+        tone: "danger",
+        title: `${exam.course?.name ?? "Materia"} requiere atencion`,
+        message: `Examen en ${daysUntil} dia(s), nota proyectada ${projected.toFixed(1)} y ${Math.round(weeklyMinutes / 60)}h de estudio esta semana.`,
+        action: {
+          label: "Iniciar Focus Mode",
+          href: `/dashboard?focus=1&course=${exam.courseId}`,
+        },
+      };
+      break;
+    }
+
+    if (!recommendation) {
+      for (const course of courses) {
+        const nextExam = exams.find((exam) => exam.courseId === course.id && differenceInCalendarDays(exam.dateTime, now) <= 10);
+        if (!nextExam) continue;
+
+        const lastStudyAt = latestByCourse.get(course.id);
+        if (!lastStudyAt) continue;
+
+        const daysWithoutStudy = differenceInCalendarDays(now, new Date(lastStudyAt));
+        if (daysWithoutStudy <= 4) continue;
+
+        recommendation = {
+          id: `neglected-course-${course.id}`,
+          tone: "warning",
+          title: `${course.name} sin estudio reciente`,
+          message: `No registras sesiones en ${daysWithoutStudy} dias y tienes examen pronto.`,
+          action: {
+            label: "Retomar Focus",
+            href: `/dashboard?focus=1&course=${course.id}`,
+          },
+        };
+        break;
+      }
+    }
+
+    if (!recommendation) {
+      const examsThisWeek = exams.filter((exam) => differenceInCalendarDays(exam.dateTime, now) <= 7).length;
+      const assignmentsThisWeek = assignments.length;
+      const loadScore = examsThisWeek * 2 + assignmentsThisWeek;
+
+      if (loadScore >= 8) {
+        recommendation = {
+          id: "heavy-week",
+          tone: "warning",
+          title: "Semana de alta carga",
+          message: `Tienes ${examsThisWeek} examen(es) y ${assignmentsThisWeek} entrega(s) en los proximos 7 dias.`,
+          action: {
+            label: "Ver Calendario",
+            href: "/calendar",
+          },
+        };
+      }
+    }
+
+    if (!recommendation) {
+      recommendation = {
+        id: "all-good",
+        tone: "success",
+        title: "Buen ritmo academico",
+        message: "No hay alertas criticas por ahora. Mantener consistencia esta semana te dara ventaja.",
+        action: {
+          label: "Revisar metas",
+          href: "/dashboard",
+        },
+      };
+    }
+
+    res.json(recommendation);
   }),
 );
 

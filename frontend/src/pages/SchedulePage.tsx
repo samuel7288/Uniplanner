@@ -1,8 +1,9 @@
 import { Bars3BottomLeftIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
-import { DragEvent, useEffect, useMemo, useState } from "react";
+import { DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { api, getErrorMessage } from "../lib/api";
+import { exportToPDF, getCurrentSemesterLabel } from "../utils/exportPDF";
 import {
   Alert,
   Badge,
@@ -57,6 +58,8 @@ export function SchedulePage() {
   const [viewMode, setViewMode] = useState<ViewMode>("expanded");
   const [draggingId, setDraggingId] = useState("");
   const [updatingId, setUpdatingId] = useState("");
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const scheduleExportRef = useRef<HTMLDivElement>(null);
 
   const today = useMemo(() => new Date().getDay(), []);
   const [mobileDay, setMobileDay] = useState(today);
@@ -138,6 +141,23 @@ export function SchedulePage() {
     void moveSession(sessionId, day, hour);
   }
 
+  async function handleExportPdf() {
+    const target = scheduleExportRef.current;
+    if (!target) return;
+
+    setExportingPdf(true);
+    setError("");
+    try {
+      await exportToPDF(target, `horario-${getCurrentSemesterLabel()}.pdf`);
+      toast.success("PDF generado");
+    } catch (err) {
+      setError(getErrorMessage(err));
+      toast.error("No se pudo generar el PDF");
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -158,37 +178,43 @@ export function SchedulePage() {
         title="Mi horario semanal"
         subtitle="Arrastra bloques para reprogramar sesiones y alterna vista compacta/expandida."
         action={
-          <div className="inline-flex rounded-xl border border-ink-200 bg-white p-1 dark:border-ink-700 dark:bg-[var(--surface)]">
-            <button
-              type="button"
-              onClick={() => setViewMode("compact")}
-              className={clsx(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
-                viewMode === "compact"
-                  ? "bg-brand-600 text-white"
-                  : "text-ink-600 hover:bg-ink-50 dark:text-ink-400 dark:hover:bg-ink-800",
-              )}
-            >
-              Compacta
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("expanded")}
-              className={clsx(
-                "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
-                viewMode === "expanded"
-                  ? "bg-brand-600 text-white"
-                  : "text-ink-600 hover:bg-ink-50 dark:text-ink-400 dark:hover:bg-ink-800",
-              )}
-            >
-              Expandida
-            </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-xl border border-ink-200 bg-white p-1 dark:border-ink-700 dark:bg-[var(--surface)]">
+              <button
+                type="button"
+                onClick={() => setViewMode("compact")}
+                className={clsx(
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                  viewMode === "compact"
+                    ? "bg-brand-600 text-white"
+                    : "text-ink-600 hover:bg-ink-50 dark:text-ink-400 dark:hover:bg-ink-800",
+                )}
+              >
+                Compacta
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("expanded")}
+                className={clsx(
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition",
+                  viewMode === "expanded"
+                    ? "bg-brand-600 text-white"
+                    : "text-ink-600 hover:bg-ink-50 dark:text-ink-400 dark:hover:bg-ink-800",
+                )}
+              >
+                Expandida
+              </button>
+            </div>
+            <Button type="button" size="sm" onClick={() => void handleExportPdf()} disabled={exportingPdf || loading}>
+              {exportingPdf ? "Generando PDF..." : "Exportar PDF"}
+            </Button>
           </div>
         }
       />
 
       {error && <Alert tone="error" message={error} />}
 
+      <div ref={scheduleExportRef} className="space-y-6">
       <div className="space-y-3 md:hidden">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {dayLabels.map((label, dayIndex) => (
@@ -427,6 +453,7 @@ export function SchedulePage() {
           Tip: arrastra una clase a otra celda para cambiar dia/hora. El sistema conserva su duracion original.
         </p>
       </Card>
+      </div>
     </div>
   );
 }

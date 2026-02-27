@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { api, getErrorMessage } from "../lib/api";
+import { extractDayKeyFromInput, useConflictDetection } from "../hooks/useConflictDetection";
 import type { Course, PaginatedResponse, PaginationMeta, Project, ProjectTask } from "../lib/types";
 import { Alert, Badge, Button, Card, EmptyState, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -206,6 +207,7 @@ export function ProjectsPage() {
     open: false, id: null, name: "",
   });
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [taskViewMode, setTaskViewMode] = useState<"kanban" | "list">("kanban");
   const formAnchorRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -221,6 +223,16 @@ export function ProjectsPage() {
     if (!activeDragId || !selectedProject) return null;
     return selectedProject.tasks.find((t) => t.id === activeDragId) ?? null;
   }, [activeDragId, selectedProject]);
+  const {
+    loading: conflictsLoading,
+    error: conflictsError,
+    getConflictsForDay,
+  } = useConflictDetection();
+  const projectDateConflicts = useMemo(() => {
+    const dayKey = extractDayKeyFromInput(projectForm.dueDate);
+    if (!dayKey) return [];
+    return getConflictsForDay(dayKey, { exclude: { type: "project" } });
+  }, [getConflictsForDay, projectForm.dueDate]);
 
   async function loadData() {
     const [projectsResponse, coursesResponse] = await Promise.all([
@@ -434,6 +446,19 @@ export function ProjectsPage() {
                 onChange={(event) => setProjectForm((prev) => ({ ...prev, dueDate: event.target.value }))}
               />
             </Field>
+            {conflictsError && <Alert tone="warning" message={`No se pudo verificar conflictos: ${conflictsError}`} />}
+            {!conflictsError && projectDateConflicts.length > 0 && (
+              <Alert
+                tone="warning"
+                message={`Conflicto detectado: ya tienes ${projectDateConflicts.length} evaluacion(es) ese dia (${projectDateConflicts
+                  .slice(0, 2)
+                  .map((item) => item.title)
+                  .join(", ")}). Puedes guardar de todas formas.`}
+              />
+            )}
+            {conflictsLoading && !projectDateConflicts.length && projectForm.dueDate && (
+              <p className="text-xs text-ink-500 dark:text-ink-400">Verificando conflictos de fecha...</p>
+            )}
             <Button type="submit">Crear proyecto</Button>
           </form>
 
@@ -554,6 +579,24 @@ export function ProjectsPage() {
                     ? ` vence ${format(new Date(selectedProject.dueDate), "dd/MM/yyyy")}`
                     : " sin fecha"}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={taskViewMode === "kanban" ? "primary" : "ghost"}
+                    onClick={() => setTaskViewMode("kanban")}
+                  >
+                    Vista Kanban
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={taskViewMode === "list" ? "primary" : "ghost"}
+                    onClick={() => setTaskViewMode("list")}
+                  >
+                    Vista lista
+                  </Button>
+                </div>
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
@@ -622,36 +665,76 @@ export function ProjectsPage() {
                 </Card>
               </div>
 
-              {/* Kanban board with DnD */}
-              <DndContext
-                sensors={sensors}
-                onDragStart={(event) => setActiveDragId(event.active.id as string)}
-                onDragEnd={handleDragEnd}
-                onDragCancel={() => setActiveDragId(null)}
-              >
-                <div className="grid gap-3 lg:grid-cols-3">
-                  {statusColumns.map((column) => (
-                    <DroppableColumn
-                      key={column.id}
-                      id={column.id}
-                      label={column.label}
-                      tasks={selectedProject.tasks.filter((task) => task.status === column.id)}
-                      onMove={updateTask}
-                    />
-                  ))}
-                </div>
+              {taskViewMode === "kanban" ? (
+                <DndContext
+                  sensors={sensors}
+                  onDragStart={(event) => setActiveDragId(event.active.id as string)}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={() => setActiveDragId(null)}
+                >
+                  <div className="grid gap-3 lg:grid-cols-3">
+                    {statusColumns.map((column) => (
+                      <DroppableColumn
+                        key={column.id}
+                        id={column.id}
+                        label={column.label}
+                        tasks={selectedProject.tasks.filter((task) => task.status === column.id)}
+                        onMove={updateTask}
+                      />
+                    ))}
+                  </div>
 
-                <DragOverlay>
-                  {activeDragTask && (
-                    <DraggableTaskCard
-                      task={activeDragTask}
-                      statusColumns={statusColumns}
-                      onMove={() => void 0}
-                      isDraggingOverlay
+                  <DragOverlay>
+                    {activeDragTask && (
+                      <DraggableTaskCard
+                        task={activeDragTask}
+                        statusColumns={statusColumns}
+                        onMove={() => void 0}
+                        isDraggingOverlay
+                      />
+                    )}
+                  </DragOverlay>
+                </DndContext>
+              ) : (
+                <div className="grid gap-2">
+                  {selectedProject.tasks.length === 0 ? (
+                    <EmptyState
+                      context="projects"
+                      title="Sin tareas"
+                      description="Agrega una tarea para empezar tu plan de trabajo."
                     />
+                  ) : (
+                    selectedProject.tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="rounded-xl border border-ink-200 bg-white p-3 dark:border-ink-700 dark:bg-[var(--surface)]"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold text-ink-800 dark:text-ink-200">{task.title}</p>
+                          <Badge tone={task.status === "DONE" ? "success" : task.status === "DOING" ? "warning" : "default"}>
+                            {task.status}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {statusColumns
+                            .filter((column) => column.id !== task.status)
+                            .map((column) => (
+                              <Button
+                                key={column.id}
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => void updateTask(task.id, column.id)}
+                              >
+                                Mover a {column.label}
+                              </Button>
+                            ))}
+                        </div>
+                      </div>
+                    ))
                   )}
-                </DragOverlay>
-              </DndContext>
+                </div>
+              )}
             </div>
           )}
         </Card>

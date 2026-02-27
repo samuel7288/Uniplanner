@@ -1,21 +1,26 @@
 import { FormEvent, useEffect, useState } from "react";
 import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, type ThemePreset } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { api, getErrorMessage } from "../lib/api";
-import { SettingsPreferencesSchema, UserSchema } from "../lib/schemas";
+import { AchievementsResponseSchema, SettingsPreferencesSchema, UserSchema } from "../lib/schemas";
+import type { AchievementsResponse } from "../lib/types";
 import { Alert, Button, Card, Field, PageTitle, TextInput } from "../components/UI";
 
 const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }[] = [
   { id: "ocean", label: "Ocean", brand: "#264ad1", accent: "#1c9366" },
   { id: "forest", label: "Forest", brand: "#1a6e3c", accent: "#0e5c6b" },
   { id: "sunset", label: "Sunset", brand: "#c0451e", accent: "#b8820d" },
+  { id: "midnight", label: "Midnight", brand: "#285686", accent: "#0d7286" },
+  { id: "sepia", label: "Sepia", brand: "#916126", accent: "#64701f" },
   { id: "violet", label: "Violet", brand: "#6b28c8", accent: "#c428a0" },
 ];
 
 export function SettingsPage() {
   const { user, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const { isDark, toggleDark, preset, setPreset, setDarkMode } = useTheme();
   const {
     supported: browserNotifSupported,
@@ -35,6 +40,12 @@ export function SettingsPage() {
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [achievements, setAchievements] = useState<AchievementsResponse | null>(null);
+  const [studyReminderPrefs, setStudyReminderPrefs] = useState({
+    enabled: true,
+    minDaysWithoutStudy: 3,
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -60,6 +71,50 @@ export function SettingsPage() {
     user?.university,
   ]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadStudyReminderPrefs() {
+      try {
+        const response = await api.get<{ enabled: boolean; minDaysWithoutStudy: number }>(
+          "/settings/study-reminders",
+        );
+        if (!active) return;
+        setStudyReminderPrefs({
+          enabled: response.data.enabled,
+          minDaysWithoutStudy: response.data.minDaysWithoutStudy,
+        });
+      } catch {
+        // no-op: keep defaults when endpoint is temporarily unavailable
+      }
+    }
+
+    void loadStudyReminderPrefs();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadAchievements() {
+      try {
+        const response = await api.get<AchievementsResponse>("/achievements");
+        const parsed = AchievementsResponseSchema.parse(response.data);
+        if (!active) return;
+        setAchievements(parsed);
+      } catch {
+        // no-op
+      }
+    }
+
+    void loadAchievements();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -79,6 +134,10 @@ export function SettingsPage() {
         darkModePref: isDark,
         themePreset: preset,
         browserPushEnabled: browserNotifEnabled,
+      });
+      await api.put("/settings/study-reminders", {
+        enabled: studyReminderPrefs.enabled,
+        minDaysWithoutStudy: studyReminderPrefs.minDaysWithoutStudy,
       });
 
       const savedProfile = UserSchema.parse(profileResponse.data);
@@ -101,6 +160,34 @@ export function SettingsPage() {
       setMessage("Perfil actualizado.");
     } catch (err) {
       setError(getErrorMessage(err));
+    }
+  }
+
+  async function archiveCurrentSemester() {
+    const confirmed = window.confirm(
+      "Se archivaran las materias del semestre activo y ya no apareceran en la vista principal. Continuar?",
+    );
+    if (!confirmed) return;
+
+    setError("");
+    setMessage("");
+    setArchiveLoading(true);
+
+    try {
+      const response = await api.patch<{ semester: string | null; archivedCount: number }>("/courses/archive-semester", {});
+      const { semester, archivedCount } = response.data;
+
+      if (archivedCount === 0) {
+        setMessage("No hay materias activas para archivar.");
+        return;
+      }
+
+      const semesterLabel = semester ? ` del semestre ${semester}` : "";
+      setMessage(`Se archivaron ${archivedCount} materias${semesterLabel}.`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setArchiveLoading(false);
     }
   }
 
@@ -209,6 +296,103 @@ export function SettingsPage() {
               >
                 Probar
               </Button>
+            </div>
+          </>
+        )}
+      </Card>
+
+      <Card className="max-w-xl space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Historial academico
+        </h2>
+        <p className="text-sm text-ink-600 dark:text-ink-400">
+          Archiva el semestre actual para congelar materias y consultar su GPA en la vista de historial.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={() => void archiveCurrentSemester()} disabled={archiveLoading}>
+            {archiveLoading ? "Archivando..." : "Archivar semestre"}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => navigate("/history")}>
+            Ver historial
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="max-w-xl space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Recordatorios de estudio
+        </h2>
+        <p className="text-sm text-ink-600 dark:text-ink-400">
+          Recibe alertas inteligentes cuando tienes examenes proximos y llevas dias sin estudiar una materia.
+        </p>
+        <label className="inline-flex items-center gap-2 text-sm text-ink-700 dark:text-ink-300">
+          <input
+            type="checkbox"
+            checked={studyReminderPrefs.enabled}
+            onChange={(event) =>
+              setStudyReminderPrefs((prev) => ({ ...prev, enabled: event.target.checked }))
+            }
+            className="rounded border-ink-300 dark:border-ink-600"
+          />
+          Recordarme estudiar cuando tengo examen proximo
+        </label>
+        <Field label="Dias sin estudiar para activar recordatorio">
+          <select
+            value={String(studyReminderPrefs.minDaysWithoutStudy)}
+            onChange={(event) =>
+              setStudyReminderPrefs((prev) => ({
+                ...prev,
+                minDaysWithoutStudy: Number(event.target.value),
+              }))
+            }
+            className="w-full rounded-xl border border-ink-300 bg-white px-3 py-2 text-sm text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-200"
+            disabled={!studyReminderPrefs.enabled}
+          >
+            {[1, 2, 3, 4, 5, 6, 7].map((value) => (
+              <option key={value} value={value}>
+                {value} dia(s)
+              </option>
+            ))}
+          </select>
+        </Field>
+      </Card>
+
+      <Card className="max-w-xl space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Logros
+        </h2>
+        {!achievements ? (
+          <p className="text-sm text-ink-600 dark:text-ink-400">Cargando logros...</p>
+        ) : (
+          <>
+            <p className="text-sm text-ink-600 dark:text-ink-400">
+              Racha actual: <strong>{achievements.streak.current}</strong> dias | Record:{" "}
+              <strong>{achievements.streak.longest}</strong> dias
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {achievements.items.map((item) => (
+                <div
+                  key={item.type}
+                  className={`rounded-xl border p-3 text-center ${
+                    item.unlocked
+                      ? "border-success-300 bg-success-50 dark:border-success-700/50 dark:bg-success-900/20"
+                      : "border-ink-200 bg-ink-100/60 dark:border-ink-700 dark:bg-ink-800/40"
+                  }`}
+                >
+                  <p
+                    className={`text-sm font-semibold ${
+                      item.unlocked
+                        ? "text-ink-800 dark:text-ink-100"
+                        : "text-ink-500 dark:text-ink-400"
+                    }`}
+                  >
+                    {item.unlocked ? item.name : "???"}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
+                    {item.unlocked ? item.description : "Logro bloqueado"}
+                  </p>
+                </div>
+              ))}
             </div>
           </>
         )}

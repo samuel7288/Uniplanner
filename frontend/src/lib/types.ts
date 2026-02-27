@@ -8,7 +8,7 @@ export type User = {
   notifyInApp: boolean;
   notifyEmail: boolean;
   darkModePref?: boolean;
-  themePreset?: "ocean" | "forest" | "sunset" | "violet";
+  themePreset?: "ocean" | "forest" | "sunset" | "midnight" | "sepia" | "violet";
   browserPushEnabled?: boolean;
 };
 
@@ -38,6 +38,7 @@ export type Assignment = {
   title: string;
   description?: string | null;
   dueDate: string;
+  estimatedMinutes?: number | null;
   priority: "LOW" | "MEDIUM" | "HIGH";
   status: "PENDING" | "IN_PROGRESS" | "DONE";
   repeatRule: "NONE" | "WEEKLY" | "MONTHLY";
@@ -58,6 +59,14 @@ export type Exam = {
   reminderOffsets: number[];
   courseId?: string | null;
   course?: Pick<Course, "id" | "name" | "code" | "color"> | null;
+  obtainedGrade?: number | null;
+  studyHoursLogged?: number | null;
+  feelingScore?: number | null;
+  retroNotes?: string | null;
+  retroCompletedAt?: string | null;
+  retroDismissed?: boolean;
+  retroDismissedAt?: string | null;
+  suggestedStudyHours?: number;
 };
 
 export type Milestone = {
@@ -126,6 +135,161 @@ export type DashboardSummary = {
   focusTasks: Assignment[];
 };
 
+export type SemesterHistoryCourse = {
+  id: string;
+  name: string;
+  code: string;
+  finalAverage: number | null;
+  coveredWeight: number;
+  gradesCount: number;
+  archivedAt: string | null;
+};
+
+export type SemesterHistoryBucket = {
+  semester: string;
+  archivedAt: string;
+  gpa: number | null;
+  courseCount: number;
+  gradedCourses: number;
+  courses: SemesterHistoryCourse[];
+};
+
+export type SemesterHistoryResponse = {
+  semesters: SemesterHistoryBucket[];
+  cumulative: Array<{
+    semester: string;
+    gpa: number | null;
+    cumulativeGpa: number | null;
+  }>;
+  insights: {
+    samples: number;
+    avgWhenOver6h: number | null;
+    avgWhenUnder3h: number | null;
+    bestCourseByEfficiency: string | null;
+  };
+};
+
+export type StudySession = {
+  id: string;
+  courseId: string;
+  duration: number;
+  startTime: string;
+  endTime: string;
+  source: "manual" | "pomodoro";
+  course: Pick<Course, "id" | "name" | "code" | "color">;
+};
+
+export type StudyWeekSummary = {
+  weekStart: string;
+  weekEnd: string;
+  totalMinutes: number;
+  byCourse: Array<{
+    courseId: string;
+    courseName: string;
+    code: string;
+    color: string | null;
+    totalMinutes: number;
+    sessionCount: number;
+  }>;
+  sessions: StudySession[];
+};
+
+export type StudyGoalProgress = {
+  courseId: string;
+  courseName: string;
+  code: string;
+  color: string | null;
+  weeklyMinutes: number;
+  completedMinutes: number;
+  percentage: number;
+  sessions: number;
+};
+
+export type CoachHint = {
+  id: string;
+  tone: "danger" | "warning" | "success";
+  title: string;
+  message: string;
+  action: {
+    label: string;
+    href: string;
+  };
+};
+
+export type AchievementItem = {
+  type: string;
+  name: string;
+  description: string;
+  unlocked: boolean;
+  unlockedAt: string | null;
+};
+
+export type AchievementsResponse = {
+  streak: {
+    current: number;
+    longest: number;
+    lastStudyDate: string | null;
+  };
+  items: AchievementItem[];
+  recentlyUnlocked: Array<{
+    type: string;
+    name: string;
+    unlockedAt: string;
+  }>;
+  metadata: {
+    recentWindowHours: number;
+  };
+};
+
+export type TodayClassSession = {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  room?: string | null;
+  modality: "PRESENTIAL" | "ONLINE";
+  course: Pick<Course, "id" | "name" | "code" | "color">;
+};
+
+export type TodayActionItem = {
+  id: string;
+  type: "assignment" | "exam" | "project" | "milestone";
+  title: string;
+  dueAt: string;
+  courseId: string | null;
+  courseName: string | null;
+  status: string | null;
+  estimatedMinutes: number | null;
+  bucket: "today" | "tomorrow" | "week";
+  daysLeft: number;
+};
+
+export type TodayResponse = {
+  date: string;
+  classSessions: TodayClassSession[];
+  prioritized: TodayActionItem[];
+  dueToday: TodayActionItem[];
+  dueTomorrow: TodayActionItem[];
+  dueThisWeek: TodayActionItem[];
+  studyMinutesToday: number;
+  completedToday: number;
+  totalDueToday: number;
+  examsTomorrow: number;
+  todayWorkloadMinutes: number;
+  todayWorkloadItems: Array<{
+    id: string;
+    title: string;
+    courseName: string | null;
+    minutes: number;
+  }>;
+  dateBoundaries: {
+    todayStart: string;
+    todayEnd: string;
+    tomorrowStart: string;
+    tomorrowEnd: string;
+  };
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;
@@ -169,7 +333,7 @@ export type PaginatedResponse<T> = {
 
 export type SearchItem = {
   id: string;
-  entityType: "course" | "assignment" | "exam";
+  entityType: "course" | "archived_course" | "assignment" | "exam" | "project" | "task" | "study_session";
   title: string;
   subtitle: string;
   updatedAt: string;
@@ -180,8 +344,12 @@ export type SearchResponse = {
   items: SearchItem[];
   counts: {
     courses: number;
+    archivedCourses: number;
     assignments: number;
     exams: number;
+    projects: number;
+    tasks: number;
+    studySessions: number;
     total: number;
   };
   pagination: PaginationMeta;
@@ -191,6 +359,6 @@ export type SearchResponse = {
   };
   filters: {
     q: string;
-    type: "all" | "course" | "assignment" | "exam";
+    type: "all" | "course" | "assignment" | "exam" | "project";
   };
 };

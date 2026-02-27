@@ -1,9 +1,10 @@
+import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { CalendarDaysIcon, ListBulletIcon, Squares2X2Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -20,6 +21,7 @@ import {
   TextInput,
 } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { extractDayKeyFromInput, useConflictDetection } from "../hooks/useConflictDetection";
 import { api, getErrorMessage } from "../lib/api";
 import type {
   Assignment,
@@ -30,6 +32,11 @@ import type {
 
 const ASSIGNMENTS_FILTERS_KEY = "uniplanner_assignments_filters_v1";
 const ASSIGNMENTS_PAGE_KEY = "uniplanner_assignments_page_v1";
+const assignmentStatusColumns: Array<{ id: Assignment["status"]; label: string }> = [
+  { id: "PENDING", label: "Pendiente" },
+  { id: "IN_PROGRESS", label: "En progreso" },
+  { id: "DONE", label: "Completado" },
+];
 
 function parseCSV(input: string): string[] {
   return input
@@ -64,6 +71,28 @@ const assignmentFormSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   status: z.enum(["PENDING", "IN_PROGRESS", "DONE"]),
   repeatRule: z.enum(["NONE", "WEEKLY", "MONTHLY"]),
+  estimatedHours: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value || value.trim().length === 0) return true;
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed >= 0 && parsed <= 24;
+      },
+      "Horas invalidas (0-24)",
+    ),
+  estimatedMinutesPart: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value || value.trim().length === 0) return true;
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed >= 0 && parsed <= 59;
+      },
+      "Minutos invalidos (0-59)",
+    ),
   tags: z.string().optional(),
   attachmentLinks: z
     .string()
@@ -72,6 +101,19 @@ const assignmentFormSchema = z.object({
       (value) => parseCSV(value ?? "").every((link) => isValidHttpUrl(link)),
       "Cada adjunto debe ser un link valido (http/https)",
     ),
+}).superRefine((values, ctx) => {
+  const hasHours = Boolean(values.estimatedHours && values.estimatedHours.trim().length > 0);
+  const hasMinutes = Boolean(values.estimatedMinutesPart && values.estimatedMinutesPart.trim().length > 0);
+  if (!hasHours && !hasMinutes) return;
+
+  const totalMinutes = (Number(values.estimatedHours ?? 0) || 0) * 60 + (Number(values.estimatedMinutesPart ?? 0) || 0);
+  if (totalMinutes <= 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["estimatedMinutesPart"],
+      message: "La estimacion debe ser mayor a 0 minutos",
+    });
+  }
 });
 
 type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;
@@ -84,6 +126,8 @@ const emptyForm: AssignmentFormValues = {
   priority: "MEDIUM",
   status: "PENDING",
   repeatRule: "NONE",
+  estimatedHours: "",
+  estimatedMinutesPart: "",
   tags: "",
   attachmentLinks: "",
 };
@@ -144,6 +188,147 @@ function priorityTone(priority: string): "default" | "warning" | "danger" {
   return "default";
 }
 
+function formatEstimatedMinutes(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}min`;
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}min`;
+}
+
+function DraggableAssignmentCard({
+  assignment,
+  onMove,
+  isDraggingOverlay = false,
+}: {
+  assignment: Assignment;
+  onMove: (assignmentId: string, status: Assignment["status"]) => void;
+  isDraggingOverlay?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: assignment.id });
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined;
+
+  return (
+    <article
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={clsx(
+        "rounded-xl border border-ink-200 bg-white p-3 shadow-soft dark:border-ink-700 dark:bg-[var(--surface)]",
+        (isDragging || isDraggingOverlay) && "opacity-60 ring-2 ring-brand-300",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-100">{assignment.title}</h3>
+          <p className="text-xs text-ink-500 dark:text-ink-400">
+            {assignment.course?.name || "Sin materia"} - {format(new Date(assignment.dueDate), "dd/MM HH:mm")}
+          </p>
+          {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+            <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+              Estimado: {formatEstimatedMinutes(assignment.estimatedMinutes)}
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          {...listeners}
+          className="cursor-grab rounded p-1 text-ink-400 hover:text-ink-700 dark:text-ink-500 dark:hover:text-ink-200 active:cursor-grabbing"
+          aria-label="Arrastrar tarea"
+        >
+          <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+            <circle cx="3" cy="3" r="1.4" />
+            <circle cx="9" cy="3" r="1.4" />
+            <circle cx="3" cy="8" r="1.4" />
+            <circle cx="9" cy="8" r="1.4" />
+            <circle cx="3" cy="13" r="1.4" />
+            <circle cx="9" cy="13" r="1.4" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="mt-2 flex items-center gap-1.5">
+        <Badge tone={priorityTone(assignment.priority)}>{assignment.priority}</Badge>
+        <Badge tone={statusTone(assignment.status)}>{assignment.status}</Badge>
+      </div>
+
+      {!isDraggingOverlay && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {assignmentStatusColumns
+            .filter((column) => column.id !== assignment.status)
+            .map((column) => (
+              <Button
+                key={column.id}
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="px-2 py-1 text-xs"
+                onClick={() => onMove(assignment.id, column.id)}
+              >
+                {column.label}
+              </Button>
+            ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function AssignmentKanbanColumn({
+  id,
+  label,
+  assignments,
+  onMove,
+}: {
+  id: Assignment["status"];
+  label: string;
+  assignments: Assignment[];
+  onMove: (assignmentId: string, status: Assignment["status"]) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  const estimatedTotalMinutes = assignments.reduce(
+    (total, assignment) => total + (assignment.estimatedMinutes ?? 0),
+    0,
+  );
+
+  return (
+    <section
+      ref={setNodeRef}
+      className={clsx(
+        "rounded-2xl border p-3 transition",
+        isOver
+          ? "border-brand-400 bg-brand-50/60 dark:border-brand-600 dark:bg-brand-700/10"
+          : "border-ink-200 bg-ink-50/50 dark:border-ink-700 dark:bg-ink-800/30",
+      )}
+    >
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-600 dark:text-ink-400">
+        {label}
+        <span className="ml-1.5 rounded-full bg-ink-200 px-1.5 py-0.5 text-[0.65rem] font-bold text-ink-600 dark:bg-ink-700 dark:text-ink-400">
+          {assignments.length}
+        </span>
+      </h3>
+      {estimatedTotalMinutes > 0 && (
+        <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+          ~{formatEstimatedMinutes(estimatedTotalMinutes)} total
+        </p>
+      )}
+
+      <div className="space-y-2">
+        {assignments.map((assignment) => (
+          <DraggableAssignmentCard key={assignment.id} assignment={assignment} onMove={onMove} />
+        ))}
+        {assignments.length === 0 && (
+          <div className="rounded-xl border border-dashed border-ink-200 p-3 text-center text-xs text-ink-400 dark:border-ink-700 dark:text-ink-500">
+            Sin tareas
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function AssignmentsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -161,7 +346,14 @@ export function AssignmentsPage() {
     id: null,
     title: "",
   });
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const activeDragAssignment = useMemo(() => {
+    if (!activeDragId) return null;
+    return assignments.find((assignment) => assignment.id === activeDragId) ?? null;
+  }, [activeDragId, assignments]);
 
   const {
     register,
@@ -177,6 +369,18 @@ export function AssignmentsPage() {
   });
 
   const descriptionValue = watch("description") ?? "";
+  const dueDateValue = watch("dueDate") ?? "";
+  const {
+    loading: conflictsLoading,
+    error: conflictsError,
+    getConflictsForDay,
+  } = useConflictDetection();
+
+  const dueDateConflicts = useMemo(() => {
+    const dayKey = extractDayKeyFromInput(dueDateValue);
+    if (!dayKey) return [];
+    return getConflictsForDay(dayKey, { exclude: { type: "assignment", id: editingId } });
+  }, [dueDateValue, editingId, getConflictsForDay]);
 
   async function loadCourses() {
     const response = await api.get<Course[]>("/courses");
@@ -222,11 +426,20 @@ export function AssignmentsPage() {
   const onSubmit = handleSubmit(async (values) => {
     setError("");
 
+    const hasEstimateInput =
+      Boolean(values.estimatedHours?.trim()) || Boolean(values.estimatedMinutesPart?.trim());
+    const estimateHours = values.estimatedHours?.trim() ? Number(values.estimatedHours) : 0;
+    const estimateMinutesPart = values.estimatedMinutesPart?.trim() ? Number(values.estimatedMinutesPart) : 0;
+    const estimatedMinutesValue = hasEstimateInput
+      ? estimateHours * 60 + estimateMinutesPart
+      : null;
+
     const payload = {
       title: values.title.trim(),
       courseId: values.courseId || null,
       dueDate: new Date(values.dueDate).toISOString(),
       description: values.description?.trim() ? values.description.trim() : null,
+      estimatedMinutes: estimatedMinutesValue,
       priority: values.priority,
       status: values.status,
       repeatRule: values.repeatRule,
@@ -294,6 +507,7 @@ export function AssignmentsPage() {
   });
 
   function startEdit(assignment: Assignment) {
+    const estimated = assignment.estimatedMinutes ?? null;
     setEditingId(assignment.id);
     reset({
       title: assignment.title,
@@ -303,6 +517,8 @@ export function AssignmentsPage() {
       priority: assignment.priority,
       status: assignment.status,
       repeatRule: assignment.repeatRule,
+      estimatedHours: estimated !== null ? String(Math.floor(estimated / 60)) : "",
+      estimatedMinutesPart: estimated !== null ? String(estimated % 60) : "",
       tags: assignment.tags.join(", "),
       attachmentLinks: assignment.attachmentLinks.join(", "),
     });
@@ -317,6 +533,29 @@ export function AssignmentsPage() {
     } catch (err) {
       setError(getErrorMessage(err));
     }
+  }
+
+  async function updateAssignmentStatus(assignmentId: string, status: Assignment["status"]) {
+    try {
+      await api.put(`/assignments/${assignmentId}`, { status });
+      await loadAssignments();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  function handleAssignmentDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveDragId(null);
+    if (!over) return;
+
+    const assignmentId = active.id as string;
+    const nextStatus = over.id as Assignment["status"];
+    if (!assignmentStatusColumns.some((column) => column.id === nextStatus)) return;
+
+    const assignment = assignments.find((item) => item.id === assignmentId);
+    if (!assignment || assignment.status === nextStatus) return;
+    void updateAssignmentStatus(assignmentId, nextStatus);
   }
 
   async function remove(assignmentId: string) {
@@ -355,6 +594,7 @@ export function AssignmentsPage() {
                       status: "PENDING",
                       repeatRule: snapshot.repeatRule,
                       description: snapshot.description || null,
+                      estimatedMinutes: snapshot.estimatedMinutes ?? null,
                       tags: snapshot.tags,
                       attachmentLinks: snapshot.attachmentLinks,
                     })
@@ -439,6 +679,19 @@ export function AssignmentsPage() {
                 aria-invalid={!!errors.dueDate}
               />
             </Field>
+            {conflictsError && <Alert tone="warning" message={`No se pudo verificar conflictos: ${conflictsError}`} />}
+            {!conflictsError && dueDateConflicts.length > 0 && (
+              <Alert
+                tone="warning"
+                message={`Conflicto detectado: ya tienes ${dueDateConflicts.length} evaluacion(es) ese dia (${dueDateConflicts
+                  .slice(0, 2)
+                  .map((item) => item.title)
+                  .join(", ")}). Puedes guardar de todas formas.`}
+              />
+            )}
+            {conflictsLoading && !dueDateConflicts.length && dueDateValue && (
+              <p className="text-xs text-ink-500 dark:text-ink-400">Verificando conflictos de fecha...</p>
+            )}
             <div className="grid grid-cols-3 gap-2">
               <Field label="Prioridad">
                 <SelectInput {...register("priority")}>
@@ -460,6 +713,28 @@ export function AssignmentsPage() {
                   <option value="WEEKLY">Semanal</option>
                   <option value="MONTHLY">Mensual</option>
                 </SelectInput>
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Tiempo estimado (horas)" error={errors.estimatedHours?.message?.toString()}>
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={24}
+                  step={1}
+                  placeholder="0"
+                  {...register("estimatedHours")}
+                />
+              </Field>
+              <Field label="Tiempo estimado (minutos)" error={errors.estimatedMinutesPart?.message?.toString()}>
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={59}
+                  step={1}
+                  placeholder="0"
+                  {...register("estimatedMinutesPart")}
+                />
               </Field>
             </div>
             <Field
@@ -575,6 +850,10 @@ export function AssignmentsPage() {
                 Vista tarjetas
               </Tab>
               <Tab className={tabClass}>
+                <Squares2X2Icon className="size-3.5" />
+                Kanban
+              </Tab>
+              <Tab className={tabClass}>
                 <CalendarDaysIcon className="size-3.5" />
                 Timeline
               </Tab>
@@ -609,6 +888,11 @@ export function AssignmentsPage() {
                       {assignment.description && (
                         <p className="mt-2 text-sm text-ink-600 dark:text-ink-400">
                           {assignment.description}
+                        </p>
+                      )}
+                      {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+                        <p className="mt-1.5 text-xs font-semibold text-ink-600 dark:text-ink-400">
+                          Tiempo estimado: {formatEstimatedMinutes(assignment.estimatedMinutes)}
                         </p>
                       )}
                       {assignment.tags.length > 0 && (
@@ -689,6 +973,11 @@ export function AssignmentsPage() {
                       <p className="mt-1 text-xs font-semibold text-ink-600 dark:text-ink-400">
                         Vence: {format(new Date(assignment.dueDate), "dd/MM/yyyy HH:mm")}
                       </p>
+                      {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+                        <p className="mt-1 text-xs font-semibold text-ink-600 dark:text-ink-400">
+                          Estimado: {formatEstimatedMinutes(assignment.estimatedMinutes)}
+                        </p>
+                      )}
                       {assignment.description && (
                         <p className="mt-2 line-clamp-2 text-xs text-ink-600 dark:text-ink-400">
                           {assignment.description}
@@ -761,6 +1050,49 @@ export function AssignmentsPage() {
                     }
                   />
                 ) : (
+                  <DndContext
+                    sensors={sensors}
+                    onDragStart={(event) => setActiveDragId(event.active.id as string)}
+                    onDragEnd={handleAssignmentDragEnd}
+                    onDragCancel={() => setActiveDragId(null)}
+                  >
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      {assignmentStatusColumns.map((column) => (
+                        <AssignmentKanbanColumn
+                          key={column.id}
+                          id={column.id}
+                          label={column.label}
+                          assignments={assignments.filter((assignment) => assignment.status === column.id)}
+                          onMove={updateAssignmentStatus}
+                        />
+                      ))}
+                    </div>
+                    <DragOverlay>
+                      {activeDragAssignment && (
+                        <DraggableAssignmentCard
+                          assignment={activeDragAssignment}
+                          onMove={() => void 0}
+                          isDraggingOverlay
+                        />
+                      )}
+                    </DragOverlay>
+                  </DndContext>
+                )}
+              </TabPanel>
+
+              <TabPanel>
+                {assignments.length === 0 ? (
+                  <EmptyState
+                    context="assignments"
+                    title="Sin tareas"
+                    description="Crea tu primera tarea para empezar."
+                    action={
+                      <Button type="button" onClick={scrollToForm}>
+                        Crear tarea
+                      </Button>
+                    }
+                  />
+                ) : (
                   <ol className="relative ml-2 space-y-3 border-l border-ink-200 pl-4 dark:border-ink-700">
                     {[...assignments]
                       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
@@ -785,6 +1117,11 @@ export function AssignmentsPage() {
                           <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
                             {assignment.course?.name || "Sin materia"}
                           </p>
+                          {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+                            <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+                              {formatEstimatedMinutes(assignment.estimatedMinutes)}
+                            </p>
+                          )}
                           <div className="mt-2 flex gap-1.5">
                             <Badge tone={priorityTone(assignment.priority)}>{assignment.priority}</Badge>
                             <Badge tone={statusTone(assignment.status)}>{assignment.status}</Badge>

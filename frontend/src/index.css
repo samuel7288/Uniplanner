@@ -195,6 +195,17 @@ button {
   background: rgb(var(--brand-600-rgb) / 0.08);
 }
 
+.fc .calendar-conflict-dot {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #dc2626;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.85);
+}
+
 .fc .fc-col-header-cell-cushion,
 .fc .fc-daygrid-day-number {
   color: #355573;
@@ -229,6 +240,10 @@ button {
 
 .dark .fc .fc-daygrid-day.fc-day-today {
   background: rgb(var(--brand-500-rgb) / 0.10);
+}
+
+.dark .fc .calendar-conflict-dot {
+  box-shadow: 0 0 0 2px rgb(15 23 42 / 0.95);
 }
 
 .dark .fc .fc-col-header-cell-cushion,

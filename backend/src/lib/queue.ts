@@ -41,7 +41,7 @@ export type NotificationJobData = {
   userId: string;
   title: string;
   message: string;
-  type: "EXAM" | "ASSIGNMENT" | "MILESTONE";
+  type: "EXAM" | "ASSIGNMENT" | "MILESTONE" | "SYSTEM";
   scheduledFor: string; // ISO string
   userEmail: string;
   notifyEmail: boolean;

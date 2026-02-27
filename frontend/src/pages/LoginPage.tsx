@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { AuthCard } from "../components/AuthCard";
-import { Alert, Badge, Button, Field, TextInput } from "../components/UI";
+import { Alert, Button, Field, TextInput } from "../components/UI";
 import { useAuth } from "../context/AuthContext";
 import { getErrorMessage } from "../lib/api";
 
@@ -29,8 +29,8 @@ export function LoginPage() {
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
-      email: "demo@uniplanner.app",
-      password: "Demo12345!",
+      email: "",
+      password: "",
     },
   });
 
@@ -58,11 +58,6 @@ export function LoginPage() {
           </p>
         }
       >
-        <div className="flex items-center gap-2">
-          <Badge tone="brand">Demo activa</Badge>
-          <span className="text-xs text-ink-500">Puedes entrar con el usuario precargado.</span>
-        </div>
-
         <form className="grid gap-3" onSubmit={onSubmit} noValidate>
           <Field label="Email" htmlFor="email" error={errors.email?.message?.toString()}>
             <TextInput

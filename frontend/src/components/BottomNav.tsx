@@ -2,17 +2,16 @@ import {
   CalendarDaysIcon,
   ClipboardDocumentListIcon,
   HomeIcon,
-  RectangleGroupIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { NavLink } from "react-router-dom";
 
 const mobileNavItems = [
+  { to: "/today", label: "Hoy", icon: CalendarDaysIcon },
   { to: "/dashboard", label: "Inicio", icon: HomeIcon },
   { to: "/assignments", label: "Tareas", icon: ClipboardDocumentListIcon },
   { to: "/calendar", label: "Calendario", icon: CalendarDaysIcon },
-  { to: "/projects", label: "Proyectos", icon: RectangleGroupIcon },
   { to: "/settings", label: "Ajustes", icon: UserCircleIcon },
 ];
 

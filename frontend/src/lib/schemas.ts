@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ThemePresetSchema = z.enum(["ocean", "forest", "sunset", "violet"]);
+export const ThemePresetSchema = z.enum(["ocean", "forest", "sunset", "midnight", "sepia", "violet"]);
 
 export const UserSchema = z.object({
   id: z.string(),
@@ -41,6 +41,7 @@ const AssignmentSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   dueDate: z.string(),
+  estimatedMinutes: z.number().int().nullable().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   status: z.enum(["PENDING", "IN_PROGRESS", "DONE"]),
   repeatRule: z.enum(["NONE", "WEEKLY", "MONTHLY"]),
@@ -61,6 +62,14 @@ const ExamSchema = z.object({
   reminderOffsets: z.array(z.number()),
   courseId: z.string().nullable().optional(),
   course: CourseRefSchema.nullable().optional(),
+  obtainedGrade: z.number().nullable().optional(),
+  studyHoursLogged: z.number().nullable().optional(),
+  feelingScore: z.number().nullable().optional(),
+  retroNotes: z.string().nullable().optional(),
+  retroCompletedAt: z.string().nullable().optional(),
+  retroDismissed: z.boolean().optional(),
+  retroDismissedAt: z.string().nullable().optional(),
+  suggestedStudyHours: z.number().optional(),
 });
 
 export const DashboardSummarySchema = z.object({
@@ -81,4 +90,123 @@ export const DashboardSummarySchema = z.object({
     }),
   ),
   focusTasks: z.array(AssignmentSchema),
+});
+
+export const SemesterHistoryResponseSchema = z.object({
+  semesters: z.array(
+    z.object({
+      semester: z.string(),
+      archivedAt: z.string(),
+      gpa: z.number().nullable(),
+      courseCount: z.number(),
+      gradedCourses: z.number(),
+      courses: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          code: z.string(),
+          finalAverage: z.number().nullable(),
+          coveredWeight: z.number(),
+          gradesCount: z.number(),
+          archivedAt: z.string().nullable(),
+        }),
+      ),
+    }),
+  ),
+  cumulative: z.array(
+    z.object({
+      semester: z.string(),
+      gpa: z.number().nullable(),
+      cumulativeGpa: z.number().nullable(),
+    }),
+  ),
+  insights: z.object({
+    samples: z.number(),
+    avgWhenOver6h: z.number().nullable(),
+    avgWhenUnder3h: z.number().nullable(),
+    bestCourseByEfficiency: z.string().nullable(),
+  }),
+});
+
+export const StudyWeekSummarySchema = z.object({
+  weekStart: z.string(),
+  weekEnd: z.string(),
+  totalMinutes: z.number(),
+  byCourse: z.array(
+    z.object({
+      courseId: z.string(),
+      courseName: z.string(),
+      code: z.string(),
+      color: z.string().nullable(),
+      totalMinutes: z.number(),
+      sessionCount: z.number(),
+    }),
+  ),
+  sessions: z.array(
+    z.object({
+      id: z.string(),
+      courseId: z.string(),
+      duration: z.number(),
+      startTime: z.string(),
+      endTime: z.string(),
+      source: z.enum(["manual", "pomodoro"]),
+      course: z.object({
+        id: z.string(),
+        name: z.string(),
+        code: z.string(),
+        color: z.string().nullable().optional(),
+      }),
+    }),
+  ),
+});
+
+export const StudyGoalProgressSchema = z.array(
+  z.object({
+    courseId: z.string(),
+    courseName: z.string(),
+    code: z.string(),
+    color: z.string().nullable(),
+    weeklyMinutes: z.number(),
+    completedMinutes: z.number(),
+    percentage: z.number(),
+    sessions: z.number(),
+  }),
+);
+
+export const CoachHintSchema = z.object({
+  id: z.string(),
+  tone: z.enum(["danger", "warning", "success"]),
+  title: z.string(),
+  message: z.string(),
+  action: z.object({
+    label: z.string(),
+    href: z.string(),
+  }),
+});
+
+export const AchievementsResponseSchema = z.object({
+  streak: z.object({
+    current: z.number(),
+    longest: z.number(),
+    lastStudyDate: z.string().nullable(),
+  }),
+  items: z.array(
+    z.object({
+      type: z.string(),
+      name: z.string(),
+      description: z.string(),
+      unlocked: z.boolean(),
+      unlockedAt: z.string().nullable(),
+    }),
+  ),
+  recentlyUnlocked: z.array(
+    z.object({
+      type: z.string(),
+      name: z.string(),
+      unlockedAt: z.string(),
+    }),
+  ),
+  metadata: z.object({
+    recentWindowHours: z.number(),
+  }),
 });

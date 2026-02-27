@@ -19,7 +19,7 @@ export function ForgotPasswordPage() {
 
     try {
       const response = await forgotPassword(email);
-      setMessage(`${response}. Revisa tambien la consola del backend si no hay SMTP.`);
+      setMessage(response);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

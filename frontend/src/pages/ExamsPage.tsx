@@ -3,7 +3,7 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { CalendarDaysIcon, ListBulletIcon, Squares2X2Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -20,6 +20,8 @@ import {
   TextInput,
 } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ExamRetroModal } from "../components/ExamRetroModal";
+import { extractDayKeyFromInput, useConflictDetection } from "../hooks/useConflictDetection";
 import { api, getErrorMessage } from "../lib/api";
 import type {
   Course,
@@ -160,6 +162,8 @@ export function ExamsPage() {
     id: null,
     title: "",
   });
+  const [retroModalOpen, setRetroModalOpen] = useState(false);
+  const [retroExam, setRetroExam] = useState<Exam | null>(null);
   const formAnchorRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -176,6 +180,18 @@ export function ExamsPage() {
   });
 
   const syllabusValue = watch("syllabus") ?? "";
+  const dateTimeValue = watch("dateTime") ?? "";
+  const {
+    loading: conflictsLoading,
+    error: conflictsError,
+    getConflictsForDay,
+  } = useConflictDetection();
+
+  const dateTimeConflicts = useMemo(() => {
+    const dayKey = extractDayKeyFromInput(dateTimeValue);
+    if (!dayKey) return [];
+    return getConflictsForDay(dayKey, { exclude: { type: "exam", id: editingId } });
+  }, [dateTimeValue, editingId, getConflictsForDay]);
 
   async function loadCourses() {
     const response = await api.get<Course[]>("/courses");
@@ -303,6 +319,23 @@ export function ExamsPage() {
     });
   }
 
+  function shouldAskRetrospective(exam: Exam): boolean {
+    const examTime = new Date(exam.dateTime).getTime();
+    if (!Number.isFinite(examTime) || examTime > Date.now()) return false;
+    if (exam.retroDismissed) return false;
+    return !exam.retroCompletedAt;
+  }
+
+  async function openRetrospective(examId: string) {
+    try {
+      const response = await api.get<Exam>(`/exams/${examId}/retro-context`);
+      setRetroExam(response.data);
+      setRetroModalOpen(true);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
   async function remove(id: string) {
     const snapshot = exams.find((item) => item.id === id);
     try {
@@ -419,6 +452,19 @@ export function ExamsPage() {
                 aria-invalid={!!errors.dateTime}
               />
             </Field>
+            {conflictsError && <Alert tone="warning" message={`No se pudo verificar conflictos: ${conflictsError}`} />}
+            {!conflictsError && dateTimeConflicts.length > 0 && (
+              <Alert
+                tone="warning"
+                message={`Conflicto detectado: ya tienes ${dateTimeConflicts.length} evaluacion(es) ese dia (${dateTimeConflicts
+                  .slice(0, 2)
+                  .map((item) => item.title)
+                  .join(", ")}). Puedes guardar de todas formas.`}
+              />
+            )}
+            {conflictsLoading && !dateTimeConflicts.length && dateTimeValue && (
+              <p className="text-xs text-ink-500 dark:text-ink-400">Verificando conflictos de fecha...</p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <Field label="Tipo">
                 <SelectInput {...register("type")}>
@@ -583,6 +629,16 @@ export function ExamsPage() {
                         Recordatorios: {exam.reminderOffsets.join(", ")} min
                       </p>
                       <div className="mt-3 flex gap-2">
+                        {shouldAskRetrospective(exam) && (
+                          <Button
+                            type="button"
+                            variant="subtle"
+                            size="sm"
+                            onClick={() => void openRetrospective(exam.id)}
+                          >
+                            Retrospectiva
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -650,6 +706,16 @@ export function ExamsPage() {
                         </p>
                       )}
                       <div className="mt-auto flex gap-1.5 pt-3">
+                        {shouldAskRetrospective(exam) && (
+                          <Button
+                            type="button"
+                            variant="subtle"
+                            size="sm"
+                            onClick={() => void openRetrospective(exam.id)}
+                          >
+                            Retrospectiva
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -731,6 +797,16 @@ export function ExamsPage() {
                             {typeof exam.weight === "number" && (
                               <Badge tone="default">{exam.weight}%</Badge>
                             )}
+                            {shouldAskRetrospective(exam) && (
+                              <Button
+                                type="button"
+                                variant="subtle"
+                                size="sm"
+                                onClick={() => void openRetrospective(exam.id)}
+                              >
+                                Retrospectiva
+                              </Button>
+                            )}
                           </div>
                         </li>
                       ))}
@@ -779,6 +855,15 @@ export function ExamsPage() {
           setConfirmDelete({ open: false, id: null, title: "" });
         }}
         onCancel={() => setConfirmDelete({ open: false, id: null, title: "" })}
+      />
+      <ExamRetroModal
+        open={retroModalOpen}
+        exam={retroExam}
+        onClose={() => {
+          setRetroModalOpen(false);
+          setRetroExam(null);
+        }}
+        onSaved={loadExams}
       />
     </div>
   );

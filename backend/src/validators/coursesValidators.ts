@@ -42,6 +42,10 @@ const updateCourseBodySchema = z.object({
   semester: z.string().max(100).optional().nullable(),
 });
 
+const archiveSemesterBodySchema = z.object({
+  semester: z.string().min(1).max(100).optional(),
+});
+
 export const createCourseSchema = requestSchema({
   body: createCourseBodySchema,
 });
@@ -49,6 +53,10 @@ export const createCourseSchema = requestSchema({
 export const updateCourseSchema = requestSchema({
   body: updateCourseBodySchema,
   params: z.object({ id: z.string().min(1) }),
+});
+
+export const archiveSemesterSchema = requestSchema({
+  body: archiveSemesterBodySchema,
 });
 
 export const gradeProjectionSchema = requestSchema({
@@ -101,6 +109,7 @@ export const importCoursesSchema = requestSchema({
 
 export type CreateCourseBody = z.infer<typeof createCourseSchema>["body"];
 export type UpdateCourseBody = z.infer<typeof updateCourseSchema>["body"];
+export type ArchiveSemesterBody = z.infer<typeof archiveSemesterSchema>["body"];
 export type AddSessionBody = z.infer<typeof addSessionSchema>["body"];
 export type UpdateSessionBody = z.infer<typeof updateSessionSchema>["body"];
 export type GradeProjectionQuery = z.infer<typeof gradeProjectionSchema>["query"];
