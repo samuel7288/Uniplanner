@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme, type ThemePreset } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { api, getErrorMessage } from "../lib/api";
-import type { User } from "../lib/types";
+import { SettingsPreferencesSchema, UserSchema } from "../lib/schemas";
 import { Alert, Button, Card, Field, PageTitle, TextInput } from "../components/UI";
 
 const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }[] = [
@@ -66,20 +66,14 @@ export function SettingsPage() {
     setMessage("");
 
     try {
-      const profileResponse = await api.put<User>("/settings/profile", {
+      const profileResponse = await api.put("/settings/profile", {
         name: profile.name,
         career: profile.career || null,
         university: profile.university || null,
         timezone: profile.timezone,
       });
 
-      const preferencesResponse = await api.put<{
-        notifyInApp: boolean;
-        notifyEmail: boolean;
-        darkModePref: boolean;
-        themePreset: ThemePreset;
-        browserPushEnabled: boolean;
-      }>("/settings/preferences", {
+      const preferencesResponse = await api.put("/settings/preferences", {
         notifyInApp: profile.notifyInApp,
         notifyEmail: profile.notifyEmail,
         darkModePref: isDark,
@@ -87,8 +81,8 @@ export function SettingsPage() {
         browserPushEnabled: browserNotifEnabled,
       });
 
-      const savedProfile = profileResponse.data;
-      const savedPreferences = preferencesResponse.data;
+      const savedProfile = UserSchema.parse(profileResponse.data);
+      const savedPreferences = SettingsPreferencesSchema.parse(preferencesResponse.data);
 
       setProfile({
         name: savedProfile.name,

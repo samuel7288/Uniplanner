@@ -2,6 +2,7 @@ import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useSt
 import toast from "react-hot-toast";
 import axios from "axios";
 import { api, clearAuthTokens, getErrorMessage, hasAccessToken, isNetworkError, setAuthTokens } from "../lib/api";
+import { AuthResponseSchema, UserSchema } from "../lib/schemas";
 import type { User } from "../lib/types";
 
 type AuthContextValue = {
@@ -31,8 +32,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const DEBUG_AUTH = import.meta.env.DEV;
 
   async function refreshProfile(): Promise<void> {
-    const response = await api.get<User>("/auth/me");
-    setUser(response.data);
+    const response = await api.get("/auth/me");
+    setUser(UserSchema.parse(response.data));
   }
 
   async function bootstrap(): Promise<void> {
@@ -89,10 +90,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   async function login(email: string, password: string): Promise<void> {
     // Backend response no longer includes refreshToken — it is set as an HttpOnly cookie.
-    const response = await api.post<{ user: User; accessToken: string }>("/auth/login", { email, password });
-    setAuthTokens(response.data.accessToken);
-    setUser(response.data.user);
-    toast.success(`Bienvenido, ${response.data.user.name}`);
+    const response = await api.post("/auth/login", { email, password });
+    const data = AuthResponseSchema.parse(response.data);
+    setAuthTokens(data.accessToken);
+    setUser(data.user);
+    toast.success(`Bienvenido, ${data.user.name}`);
   }
 
   async function register(payload: {
@@ -103,9 +105,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     university?: string;
     timezone?: string;
   }): Promise<void> {
-    const response = await api.post<{ user: User; accessToken: string }>("/auth/register", payload);
-    setAuthTokens(response.data.accessToken);
-    setUser(response.data.user);
+    const response = await api.post("/auth/register", payload);
+    const data = AuthResponseSchema.parse(response.data);
+    setAuthTokens(data.accessToken);
+    setUser(data.user);
     toast.success("Cuenta creada exitosamente");
   }
 

@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import toast from "react-hot-toast";
 
 // In dev the Vite proxy forwards /api → backend (same origin, cookies work).
 // In production set VITE_API_BASE_URL to the full backend URL if not using a reverse proxy.
@@ -12,6 +13,8 @@ type QueuedRequest = {
 
 let isRefreshing = false;
 let queue: QueuedRequest[] = [];
+let lastGlobalMessageKey = "";
+let lastGlobalMessageAt = 0;
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
@@ -26,6 +29,53 @@ function getAccessToken(): string | null {
 
 export function hasAccessToken(): boolean {
   return Boolean(getAccessToken());
+}
+
+function showGlobalMessage(key: string, message: string): void {
+  const now = Date.now();
+  if (lastGlobalMessageKey === key && now - lastGlobalMessageAt < 2500) return;
+  lastGlobalMessageKey = key;
+  lastGlobalMessageAt = now;
+  toast.error(message);
+}
+
+function isPublicAuthPath(pathname: string): boolean {
+  return ["/login", "/register", "/forgot-password", "/reset-password"].some((path) =>
+    pathname.startsWith(path),
+  );
+}
+
+function handleAuthExpired(): void {
+  clearAuthTokens();
+  if (typeof window === "undefined") return;
+  if (!isPublicAuthPath(window.location.pathname)) {
+    showGlobalMessage("auth-expired", "Tu sesion expiro. Vuelve a iniciar sesion.");
+    window.location.assign("/login");
+  }
+}
+
+function handleGlobalApiError(error: AxiosError): void {
+  if (!error.response) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      showGlobalMessage("network-offline", "Sin conexion a internet.");
+      return;
+    }
+    showGlobalMessage("network-failed", "No se pudo conectar con el servidor.");
+    return;
+  }
+
+  const status = error.response.status;
+  if (status === 401) {
+    handleAuthExpired();
+    return;
+  }
+  if (status === 403) {
+    showGlobalMessage("forbidden", "No tienes permisos para esta accion.");
+    return;
+  }
+  if (status >= 500) {
+    showGlobalMessage("server-error", "Error interno del servidor. Intenta nuevamente.");
+  }
 }
 
 function processQueue(error: unknown, token: string | null): void {
@@ -78,6 +128,7 @@ api.interceptors.response.use(
     }
 
     if (!originalConfig || error.response?.status !== 401 || originalConfig._retry) {
+      handleGlobalApiError(error);
       return Promise.reject(error);
     }
 
@@ -86,7 +137,7 @@ api.interceptors.response.use(
       if (DEBUG_AUTH) {
         console.debug("[auth][refresh] refresh endpoint failed; clearing access token");
       }
-      clearAuthTokens();
+      handleAuthExpired();
       return Promise.reject(error);
     }
 
@@ -131,7 +182,7 @@ api.interceptors.response.use(
           hasAccessToken: Boolean(getAccessToken()),
         });
       }
-      clearAuthTokens();
+      handleAuthExpired();
       processQueue(refreshError, null);
       return Promise.reject(refreshError);
     } finally {
