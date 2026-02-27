@@ -30,6 +30,7 @@ import { OnboardingTour } from "./OnboardingTour";
 import { Button } from "./UI";
 
 const navItems = [
+  { to: "/today", label: "Hoy", icon: CalendarDaysIcon },
   { to: "/dashboard", label: "Dashboard", icon: HomeIcon },
   { to: "/courses", label: "Materias", icon: RectangleGroupIcon },
   { to: "/schedule", label: "Horario", icon: ClipboardDocumentListIcon },
@@ -43,6 +44,7 @@ const navItems = [
 ];
 
 const pageMeta = [
+  { match: "/today", title: "Resumen De Hoy", subtitle: "Prioriza clases, pendientes y avance diario en un solo lugar." },
   { match: "/dashboard", title: "Panel Academico", subtitle: "Monitorea tus avances y riesgos de este semestre." },
   { match: "/courses", title: "Materias", subtitle: "Gestiona cursos, sesiones y evaluaciones por materia." },
   { match: "/schedule", title: "Horario Semanal", subtitle: "Visualiza clases por bloque de tiempo y dia." },
@@ -210,6 +212,20 @@ export function AppShell({ children }: PropsWithChildren) {
         event.preventDefault();
         setPaletteOpen((prev) => !prev);
         return;
+      }
+
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "t") {
+        const target = event.target as HTMLElement | null;
+        const targetTag = target?.tagName?.toLowerCase();
+        const isTyping =
+          targetTag === "input" ||
+          targetTag === "textarea" ||
+          targetTag === "select" ||
+          target?.isContentEditable === true;
+        if (!isTyping) {
+          event.preventDefault();
+          navigate("/today");
+        }
       }
 
       if (event.key === "Escape") {

@@ -27,6 +27,7 @@ import { searchRoutes } from "./routes/search";
 import { settingsRoutes } from "./routes/settings";
 import { studyGoalsRoutes } from "./routes/studyGoals";
 import { studySessionsRoutes } from "./routes/studySessions";
+import { todayRoutes } from "./routes/today";
 
 export const app = express();
 
@@ -140,6 +141,7 @@ app.use("/api/calendar", calendarRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/study-sessions", mutationLimiter, studySessionsRoutes);
 app.use("/api/study-goals", mutationLimiter, studyGoalsRoutes);
+app.use("/api/today", todayRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

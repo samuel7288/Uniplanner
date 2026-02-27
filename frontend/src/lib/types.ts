@@ -202,6 +202,55 @@ export type CoachHint = {
   };
 };
 
+export type TodayClassSession = {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  room?: string | null;
+  modality: "PRESENTIAL" | "ONLINE";
+  course: Pick<Course, "id" | "name" | "code" | "color">;
+};
+
+export type TodayActionItem = {
+  id: string;
+  type: "assignment" | "exam" | "project" | "milestone";
+  title: string;
+  dueAt: string;
+  courseId: string | null;
+  courseName: string | null;
+  status: string | null;
+  estimatedMinutes: number | null;
+  bucket: "today" | "tomorrow" | "week";
+  daysLeft: number;
+};
+
+export type TodayResponse = {
+  date: string;
+  classSessions: TodayClassSession[];
+  prioritized: TodayActionItem[];
+  dueToday: TodayActionItem[];
+  dueTomorrow: TodayActionItem[];
+  dueThisWeek: TodayActionItem[];
+  studyMinutesToday: number;
+  completedToday: number;
+  totalDueToday: number;
+  examsTomorrow: number;
+  todayWorkloadMinutes: number;
+  todayWorkloadItems: Array<{
+    id: string;
+    title: string;
+    courseName: string | null;
+    minutes: number;
+  }>;
+  dateBoundaries: {
+    todayStart: string;
+    todayEnd: string;
+    tomorrowStart: string;
+    tomorrowEnd: string;
+  };
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;
