@@ -405,7 +405,7 @@ export function AppShell({ children }: PropsWithChildren) {
       {/* Mobile hamburger */}
       <button
         type="button"
-        className="fixed left-3 top-3 z-50 rounded-xl border border-ink-200 bg-white/95 p-2 shadow-soft transition hover:bg-ink-50 lg:hidden dark:border-ink-700 dark:bg-[var(--surface)]/95 dark:text-ink-300"
+        className="fixed left-3 top-3 z-50 rounded-xl border border-ink-200 bg-white/95 p-2 shadow-soft transition hover:bg-ink-50 lg:hidden dark:border-ink-700 dark:bg-[var(--surface-95)] dark:text-ink-300"
         onClick={() => setSidebarOpen((prev) => !prev)}
         aria-label="Mostrar navegacion"
       >
@@ -476,7 +476,7 @@ export function AppShell({ children }: PropsWithChildren) {
         {/* Header */}
         <header
           ref={headerRef}
-          className="sticky top-0 z-20 border-b border-ink-200/80 bg-white/80 px-4 py-3 backdrop-blur md:px-6 dark:border-ink-800/80 dark:bg-[var(--surface)]/80"
+          className="sticky top-0 z-20 border-b border-ink-200/80 bg-white/80 px-4 py-3 backdrop-blur md:px-6 dark:border-ink-800/80 dark:bg-[var(--surface-80)]"
         >
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
             <div>

@@ -67,6 +67,8 @@
   --bg-top: #0f172a;
   --bg-main: #0c1424;
   --surface: #1a2336;
+  --surface-80: rgba(26, 35, 54, 0.8);
+  --surface-95: rgba(26, 35, 54, 0.95);
   --surface-soft: #1e2a40;
   --text-main: #e2eaf4;
   --text-muted: #7f96b2;
