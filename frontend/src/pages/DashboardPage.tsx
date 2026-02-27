@@ -1,6 +1,7 @@
 import { AcademicCapIcon, BellAlertIcon, ClockIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -12,7 +13,7 @@ import {
 import { api, getErrorMessage } from "../lib/api";
 import { DashboardSummarySchema } from "../lib/schemas";
 import type { Assignment, Course, DashboardSummary, WeeklyPlanResponse } from "../lib/types";
-import { Alert, Badge, Button, Card, DashboardSkeleton, EmptyState, PageTitle, StatCard } from "../components/UI";
+import { Alert, Badge, Button, Card, DashboardSkeleton, EmptyState, Field, PageTitle, SelectInput, StatCard } from "../components/UI";
 
 const initialSummary: DashboardSummary = {
   kpis: {
@@ -25,6 +26,7 @@ const initialSummary: DashboardSummary = {
   riskCourses: [],
   focusTasks: [],
 };
+const FOCUS_MODE_STORAGE_KEY = "uniplanner_focus_mode_enabled_v1";
 
 type TimelineItem = {
   id: string;
@@ -46,8 +48,18 @@ function mockTrend(base: number, length = 6): number[] {
   );
 }
 
+function safeDateLabel(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Fecha pendiente";
+  return format(parsed, "dd/MM HH:mm");
+}
+
 export function DashboardPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<DashboardSummary>(initialSummary);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [focusCourseId, setFocusCourseId] = useState("");
   const [plan, setPlan] = useState<WeeklyPlanResponse["plan"]>([]);
   const [radarData, setRadarData] = useState<
     Array<{ course: string; current: number; projected: number }>
@@ -57,6 +69,7 @@ export function DashboardPage() {
 
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
 
   useEffect(() => {
     if (!pomodoroRunning) return;
@@ -75,6 +88,27 @@ export function DashboardPage() {
   }, [pomodoroRunning]);
 
   useEffect(() => {
+    if (location.pathname !== "/dashboard" || isFocusMode) return;
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(FOCUS_MODE_STORAGE_KEY) !== "true") return;
+    navigate("/dashboard?focus=1", { replace: true });
+  }, [isFocusMode, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isFocusMode) return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      localStorage.setItem(FOCUS_MODE_STORAGE_KEY, "false");
+      navigate("/dashboard", { replace: true });
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isFocusMode, navigate]);
+
+  useEffect(() => {
     async function load() {
       setError("");
       setLoading(true);
@@ -87,6 +121,8 @@ export function DashboardPage() {
 
         setSummary(DashboardSummarySchema.parse(summaryResponse.data));
         setPlan(planResponse.data.plan);
+        setCourses(coursesResponse.data);
+        setFocusCourseId((prev) => prev || coursesResponse.data[0]?.id || "");
 
         const projections = await Promise.all(
           coursesResponse.data.slice(0, 6).map(async (course) => {
@@ -116,6 +152,15 @@ export function DashboardPage() {
 
     void load();
   }, []);
+
+  useEffect(() => {
+    if (courses.length === 0) {
+      setFocusCourseId("");
+      return;
+    }
+    if (courses.some((course) => course.id === focusCourseId)) return;
+    setFocusCourseId(courses[0].id);
+  }, [courses, focusCourseId]);
 
   const pomodoroDisplay = useMemo(() => {
     const minutes = Math.floor(pomodoroSeconds / 60)
@@ -154,6 +199,121 @@ export function DashboardPage() {
     const ratio = (now.getTime() - start.getTime()) / (end.getTime() - start.getTime());
     return Math.max(0, Math.min(100, Math.round(ratio * 100)));
   }, []);
+
+  const focusNotes = useMemo(() => {
+    const taskNotes = summary.focusTasks
+      .filter((task) => !focusCourseId || task.courseId === focusCourseId)
+      .map((task) => ({
+        id: `task-${task.id}`,
+        title: task.title,
+        detail: `Entrega: ${safeDateLabel(task.dueDate)}`,
+        tone: assignmentPriorityTone(task.priority),
+      }));
+
+    const examNotes = summary.upcomingExams
+      .filter((exam) => !focusCourseId || exam.courseId === focusCourseId)
+      .map((exam) => ({
+        id: `exam-${exam.id}`,
+        title: exam.title,
+        detail: `Examen: ${safeDateLabel(exam.dateTime)}`,
+        tone: "warning" as const,
+      }));
+
+    return [...taskNotes, ...examNotes]
+      .sort((a, b) => a.detail.localeCompare(b.detail))
+      .slice(0, 8);
+  }, [focusCourseId, summary.focusTasks, summary.upcomingExams]);
+
+  function openFocusMode() {
+    localStorage.setItem(FOCUS_MODE_STORAGE_KEY, "true");
+    navigate("/dashboard?focus=1");
+  }
+
+  function closeFocusMode() {
+    localStorage.setItem(FOCUS_MODE_STORAGE_KEY, "false");
+    navigate("/dashboard", { replace: true });
+  }
+
+  if (isFocusMode) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-ink-950 px-4 py-6">
+        <div className="w-full max-w-5xl space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">Focus mode</p>
+              <h1 className="font-display text-3xl font-semibold text-ink-100">Sesion de estudio sin distracciones</h1>
+            </div>
+            <Button type="button" variant="ghost" onClick={closeFocusMode}>
+              Salir de focus
+            </Button>
+          </div>
+
+          {error && <Alert tone="error" message={error} />}
+
+          <div className="grid gap-4 lg:grid-cols-[1.1fr,0.9fr]">
+            <Card className="border-ink-700 bg-ink-900/70 text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.14em] text-ink-400">Pomodoro</p>
+              <p className="kpi-value mt-4 text-7xl font-semibold tracking-tight text-brand-300">{pomodoroDisplay}</p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <Button type="button" onClick={() => setPomodoroRunning((prev) => !prev)}>
+                  {pomodoroRunning ? "Pausar" : "Iniciar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setPomodoroRunning(false);
+                    setPomodoroSeconds(25 * 60);
+                  }}
+                >
+                  Reiniciar
+                </Button>
+              </div>
+              <p className="mt-3 text-xs text-ink-400">Presiona ESC para salir.</p>
+            </Card>
+
+            <Card className="border-ink-700 bg-ink-900/70">
+              <Field label="Materia en estudio">
+                <SelectInput
+                  value={focusCourseId}
+                  onChange={(event) => setFocusCourseId(event.target.value)}
+                  disabled={courses.length === 0}
+                >
+                  {courses.length === 0 && <option value="">Sin materias</option>}
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </SelectInput>
+              </Field>
+
+              <div className="mt-4">
+                <p className="mb-2 text-sm font-semibold text-ink-200">Notas de la materia</p>
+                {loading ? (
+                  <p className="text-sm text-ink-400">Cargando resumen...</p>
+                ) : focusNotes.length === 0 ? (
+                  <p className="text-sm text-ink-400">No hay tareas o examenes cercanos para esta materia.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {focusNotes.map((note) => (
+                      <div key={note.id} className="rounded-xl border border-ink-700 bg-ink-900/60 p-3">
+                        <p className="font-semibold text-ink-100">{note.title}</p>
+                        <div className="mt-1 flex items-center justify-between gap-2">
+                          <p className="text-xs text-ink-400">{note.detail}</p>
+                          <Badge tone={note.tone}>{note.tone === "danger" ? "Alta" : note.tone === "warning" ? "Media" : "Normal"}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -280,6 +440,9 @@ export function DashboardPage() {
                   }}
                 >
                   Reiniciar
+                </Button>
+                <Button type="button" variant="subtle" onClick={openFocusMode}>
+                  Modo focus
                 </Button>
               </div>
               <p className="text-xs text-ink-500 dark:text-ink-400">Sugerencia: combina 25 min foco + 5 min pausa por bloque.</p>

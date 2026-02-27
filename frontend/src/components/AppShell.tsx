@@ -103,6 +103,11 @@ export function AppShell({ children }: PropsWithChildren) {
       pageMeta[0],
     [location.pathname],
   );
+  const focusModeActive = useMemo(() => {
+    if (location.pathname !== "/dashboard") return false;
+    const params = new URLSearchParams(location.search);
+    return params.get("focus") === "1";
+  }, [location.pathname, location.search]);
 
   const currentDate = useMemo(
     () =>
@@ -190,6 +195,14 @@ export function AppShell({ children }: PropsWithChildren) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      if (focusModeActive && event.key === "Escape") {
+        event.preventDefault();
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+
+      if (focusModeActive) return;
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setPaletteOpen((prev) => !prev);
@@ -203,7 +216,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [focusModeActive, navigate]);
 
   useEffect(() => {
     if (!paletteOpen) return;
@@ -393,7 +406,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }
 
   return (
-    <div className="relative min-h-screen lg:flex">
+    <div className={clsx("relative min-h-screen", !focusModeActive && "lg:flex", focusModeActive && "bg-ink-950")}>
       {/* Skip to content link */}
       <a
         href="#main-content"
@@ -402,106 +415,112 @@ export function AppShell({ children }: PropsWithChildren) {
         Saltar al contenido
       </a>
 
-      {/* Mobile hamburger */}
-      <button
-        type="button"
-        className="fixed left-3 top-3 z-50 rounded-xl border border-ink-200 bg-white/95 p-2 shadow-soft transition hover:bg-ink-50 lg:hidden dark:border-ink-700 dark:bg-[var(--surface-95)] dark:text-ink-300"
-        onClick={() => setSidebarOpen((prev) => !prev)}
-        aria-label="Mostrar navegacion"
-      >
-        {isSidebarOpen ? <XMarkIcon className="size-5 text-ink-700 dark:text-ink-300" /> : <Bars3Icon className="size-5 text-ink-700 dark:text-ink-300" />}
-      </button>
+      {!focusModeActive && (
+        <>
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            className="fixed left-3 top-3 z-50 rounded-xl border border-ink-200 bg-white/95 p-2 shadow-soft transition hover:bg-ink-50 lg:hidden dark:border-ink-700 dark:bg-[var(--surface-95)] dark:text-ink-300"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            aria-label="Mostrar navegacion"
+          >
+            {isSidebarOpen ? <XMarkIcon className="size-5 text-ink-700 dark:text-ink-300" /> : <Bars3Icon className="size-5 text-ink-700 dark:text-ink-300" />}
+          </button>
 
-      {/* Sidebar backdrop */}
-      <div
-        className={clsx("fixed inset-0 z-30 bg-[#0f2439]/40 backdrop-blur-sm lg:hidden dark:bg-black/60", isSidebarOpen ? "block" : "hidden")}
-        onClick={() => setSidebarOpen(false)}
-        aria-hidden="true"
-      />
+          {/* Sidebar backdrop */}
+          <div
+            className={clsx("fixed inset-0 z-30 bg-[#0f2439]/40 backdrop-blur-sm lg:hidden dark:bg-black/60", isSidebarOpen ? "block" : "hidden")}
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
 
-      {/* Sidebar */}
-      <aside
-        className={clsx(
-          "fixed inset-y-0 left-0 z-40 w-[19rem] border-r border-ink-200 bg-gradient-to-b from-[#f8fbff]/95 to-[#eef4ff]/90 p-5 backdrop-blur transition-transform lg:static lg:w-72 lg:translate-x-0 dark:border-ink-800 dark:from-ink-900/95 dark:to-ink-950/90",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <Link to="/dashboard" className="mb-6 inline-flex items-center gap-2">
-          <span className="rounded-xl bg-brand-100 px-2.5 py-1.5 font-mono text-xs font-semibold uppercase text-brand-700 dark:bg-brand-700/30 dark:text-brand-400">UP</span>
-          <span className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100">UniPlanner</span>
-        </Link>
+          {/* Sidebar */}
+          <aside
+            className={clsx(
+              "fixed inset-y-0 left-0 z-40 w-[19rem] border-r border-ink-200 bg-gradient-to-b from-[#f8fbff]/95 to-[#eef4ff]/90 p-5 backdrop-blur transition-transform lg:static lg:w-72 lg:translate-x-0 dark:border-ink-800 dark:from-ink-900/95 dark:to-ink-950/90",
+              isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+            )}
+          >
+            <Link to="/dashboard" className="mb-6 inline-flex items-center gap-2">
+              <span className="rounded-xl bg-brand-100 px-2.5 py-1.5 font-mono text-xs font-semibold uppercase text-brand-700 dark:bg-brand-700/30 dark:text-brand-400">UP</span>
+              <span className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100">UniPlanner</span>
+            </Link>
 
-        <div className="mb-6 rounded-2xl border border-brand-100 bg-white/85 p-3 shadow-soft dark:border-ink-700 dark:bg-[var(--surface-soft)]/80">
-          <p className="text-xs uppercase tracking-[0.14em] text-ink-500 dark:text-ink-400">Cuenta activa</p>
-          <p className="mt-1 font-semibold text-ink-800 dark:text-ink-200">{user?.name}</p>
-          <p className="text-xs text-ink-500 dark:text-ink-400">{user?.email}</p>
-        </div>
+            <div className="mb-6 rounded-2xl border border-brand-100 bg-white/85 p-3 shadow-soft dark:border-ink-700 dark:bg-[var(--surface-soft)]/80">
+              <p className="text-xs uppercase tracking-[0.14em] text-ink-500 dark:text-ink-400">Cuenta activa</p>
+              <p className="mt-1 font-semibold text-ink-800 dark:text-ink-200">{user?.name}</p>
+              <p className="text-xs text-ink-500 dark:text-ink-400">{user?.email}</p>
+            </div>
 
-        <nav className="space-y-1.5" role="navigation" aria-label="Navegacion principal">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  clsx(
-                    "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
-                    isActive
-                      ? "bg-brand-600 text-white shadow-soft dark:bg-brand-700"
-                      : "text-ink-700 hover:bg-white/80 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-ink-100",
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon className="size-5 shrink-0" />
-                    {item.label}
-                    {item.to === "/notifications" && unreadCount > 0 && (
-                      <span className="ml-auto rounded-full bg-danger-500 px-2 py-0.5 text-[0.63rem] text-white">
-                        {unreadCount}
-                      </span>
+            <nav className="space-y-1.5" role="navigation" aria-label="Navegacion principal">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      clsx(
+                        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition",
+                        isActive
+                          ? "bg-brand-600 text-white shadow-soft dark:bg-brand-700"
+                          : "text-ink-700 hover:bg-white/80 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-ink-100",
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon className="size-5 shrink-0" />
+                        {item.label}
+                        {item.to === "/notifications" && unreadCount > 0 && (
+                          <span className="ml-auto rounded-full bg-danger-500 px-2 py-0.5 text-[0.63rem] text-white">
+                            {unreadCount}
+                          </span>
+                        )}
+                        {isActive && <span className="sr-only">(pagina actual)</span>}
+                      </>
                     )}
-                    {isActive && <span className="sr-only">(pagina actual)</span>}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
-      </aside>
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </aside>
+        </>
+      )}
 
       {/* Main content area */}
       <div className="flex min-h-screen flex-1 flex-col">
-        {/* Header */}
-        <header
-          ref={headerRef}
-          className="sticky top-0 z-20 border-b border-ink-200/80 bg-white/80 px-4 py-3 backdrop-blur md:px-6 dark:border-ink-800/80 dark:bg-[var(--surface-80)]"
-        >
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-500 dark:text-ink-400">
-                {currentDate}
-              </p>
-              <h1 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 md:text-2xl">
-                {currentPage.title}
-              </h1>
-              <p className="text-xs text-ink-600 dark:text-ink-400 md:text-sm">{currentPage.subtitle}</p>
-            </div>
+        {!focusModeActive && (
+          <>
+            {/* Header */}
+            <header
+              ref={headerRef}
+              className="sticky top-0 z-20 border-b border-ink-200/80 bg-white/80 px-4 py-3 backdrop-blur md:px-6 dark:border-ink-800/80 dark:bg-[var(--surface-80)]"
+            >
+              <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-500 dark:text-ink-400">
+                    {currentDate}
+                  </p>
+                  <h1 className="font-display text-xl font-semibold text-ink-900 dark:text-ink-100 md:text-2xl">
+                    {currentPage.title}
+                  </h1>
+                  <p className="text-xs text-ink-600 dark:text-ink-400 md:text-sm">{currentPage.subtitle}</p>
+                </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPaletteOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-semibold text-ink-700 transition hover:border-brand-200 hover:bg-brand-50/60 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300 dark:hover:border-brand-700/50 dark:hover:bg-brand-700/10"
-                aria-label="Abrir busqueda global"
-              >
-                <MagnifyingGlassIcon className="size-4" />
-                Buscar o navegar
-                <span className="rounded border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[0.64rem] dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400">
-                  Ctrl K
-                </span>
-              </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaletteOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-semibold text-ink-700 transition hover:border-brand-200 hover:bg-brand-50/60 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300 dark:hover:border-brand-700/50 dark:hover:bg-brand-700/10"
+                    aria-label="Abrir busqueda global"
+                  >
+                    <MagnifyingGlassIcon className="size-4" />
+                    Buscar o navegar
+                    <span className="rounded border border-ink-200 bg-ink-50 px-1.5 py-0.5 font-mono text-[0.64rem] dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400">
+                      Ctrl K
+                    </span>
+                  </button>
 
               <div className="hidden items-center gap-1 lg:flex">
                 {quickActions.map((action) => (
@@ -539,25 +558,30 @@ export function AppShell({ children }: PropsWithChildren) {
                 )}
               </Link>
 
-              <Button type="button" variant="ghost" onClick={() => void logout()}>
-                Salir
-              </Button>
-            </div>
-          </div>
-        </header>
+                  <Button type="button" variant="ghost" onClick={() => void logout()}>
+                    Salir
+                  </Button>
+                </div>
+              </div>
+            </header>
 
-        {/* Breadcrumb */}
-        <BreadcrumbBar />
+            {/* Breadcrumb */}
+            <BreadcrumbBar />
+          </>
+        )}
 
         {/* Main */}
         <main
           id="main-content"
           tabIndex={-1}
-          className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-20 md:px-6 lg:pb-6"
+          className={clsx(
+            "w-full flex-1",
+            focusModeActive ? "min-h-screen px-0 py-0" : "mx-auto max-w-7xl px-4 py-6 pb-20 md:px-6 lg:pb-6",
+          )}
         >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={location.pathname}
+              key={`${location.pathname}${location.search}`}
               className="page-enter"
               initial={prefersReducedMotion ? false : { opacity: 0, y: 10, filter: "blur(2px)" }}
               animate={prefersReducedMotion ? {} : { opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -570,11 +594,11 @@ export function AppShell({ children }: PropsWithChildren) {
         </main>
 
         {/* Mobile bottom nav */}
-        <BottomNav />
+        {!focusModeActive && <BottomNav />}
       </div>
 
       {/* Search palette */}
-      {paletteOpen && (
+      {!focusModeActive && paletteOpen && (
         <div
           className="fixed inset-0 z-50 bg-[#0f2439]/45 p-2 backdrop-blur-sm dark:bg-black/60 md:p-8"
           role="presentation"
@@ -713,16 +737,18 @@ export function AppShell({ children }: PropsWithChildren) {
       {/* aria-live region for screen reader announcements */}
       <div aria-live="polite" aria-atomic="true" className="sr-only" id="page-announcer" />
 
-      <OnboardingTour
-        open={onboardingOpen}
-        step={onboardingStep}
-        onNext={() => setOnboardingStep((prev) => Math.min(2, prev + 1))}
-        onPrev={() => setOnboardingStep((prev) => Math.max(0, prev - 1))}
-        onClose={closeOnboarding}
-      />
+      {!focusModeActive && (
+        <OnboardingTour
+          open={onboardingOpen}
+          step={onboardingStep}
+          onNext={() => setOnboardingStep((prev) => Math.min(2, prev + 1))}
+          onPrev={() => setOnboardingStep((prev) => Math.max(0, prev - 1))}
+          onClose={closeOnboarding}
+        />
+      )}
 
       {/* PWA install banner */}
-      <InstallPrompt />
+      {!focusModeActive && <InstallPrompt />}
     </div>
   );
 }
