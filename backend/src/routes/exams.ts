@@ -11,6 +11,7 @@ import {
   readExamRetrospectivesByIds,
   saveExamRetrospective,
 } from "../services/examRetrospectiveService";
+import { notifyStudyGroupMembersForEvaluation } from "../services/studyGroupsService";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
@@ -185,6 +186,15 @@ router.post(
       include: {
         course: true,
       },
+    });
+
+    await notifyStudyGroupMembersForEvaluation(
+      req.user!.userId,
+      exam.courseId ?? null,
+      exam.title,
+      "exam",
+    ).catch(() => {
+      // Group notifications are best-effort.
     });
 
     const [examWithRetro] = await attachRetroData([exam]);

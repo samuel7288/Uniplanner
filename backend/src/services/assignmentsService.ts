@@ -1,6 +1,7 @@
 import { AssignmentStatus, Prisma } from "@prisma/client";
 import { endOfDay, parseISO, startOfDay } from "date-fns";
 import { prisma } from "../lib/prisma";
+import { notifyStudyGroupMembersForEvaluation } from "./studyGroupsService";
 import type {
   CreateAssignmentBody,
   ListAssignmentsQuery,
@@ -263,6 +264,15 @@ export async function createAssignment(userId: string, payload: CreateAssignment
         },
       },
     },
+  });
+
+  await notifyStudyGroupMembersForEvaluation(
+    userId,
+    hydrated.courseId ?? null,
+    hydrated.title,
+    "assignment",
+  ).catch(() => {
+    // Notification fan-out should not block assignment creation.
   });
 
   const estimatedMinutesById = await readEstimatedMinutesByIds([hydrated.id]);

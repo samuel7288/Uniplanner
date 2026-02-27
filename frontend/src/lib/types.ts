@@ -307,8 +307,41 @@ export type CalendarEvent = {
   title: string;
   start: string;
   end?: string;
-  type: "class" | "assignment" | "exam" | "milestone";
+  type: "class" | "assignment" | "exam" | "milestone" | "group";
   color?: string;
+};
+
+export type StudyGroupRole = "admin" | "member";
+
+export type StudyGroupSummary = {
+  id: number;
+  name: string;
+  courseId: string | null;
+  createdAt: string;
+  role: StudyGroupRole;
+  membersCount: number;
+  courseName: string | null;
+  courseCode: string | null;
+};
+
+export type StudyGroupMember = {
+  userId: string;
+  name: string;
+  email: string;
+  role: StudyGroupRole;
+  joinedAt: string;
+};
+
+export type StudyGroupCalendarEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  type: "group";
+  courseId: string | null;
+  sourceUserId: string;
+  sourceUserName: string;
+  courseName: string | null;
 };
 
 export type WeeklyPlanResponse = {

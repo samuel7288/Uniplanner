@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma";
 import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
+import { listGroupCalendarEventsForUser } from "../services/studyGroupsService";
 import { asyncHandler } from "../utils/asyncHandler";
 import { buildICS, mapClassSessionsToEvents, toCalendarEvent } from "../utils/calendar";
 
@@ -20,7 +21,7 @@ const calendarQuerySchema = requestSchema({
 
 function parseTypes(input?: string): Set<string> {
   if (!input) {
-    return new Set(["class", "assignment", "exam", "milestone"]);
+    return new Set(["class", "assignment", "exam", "milestone", "group"]);
   }
   return new Set(
     input
@@ -43,7 +44,7 @@ async function buildCalendarItems(
     title: string;
     start: Date;
     end?: Date;
-    type: "class" | "assignment" | "exam" | "milestone";
+    type: "class" | "assignment" | "exam" | "milestone" | "group";
     color?: string | null;
     description?: string | null;
     location?: string | null;
@@ -54,7 +55,7 @@ async function buildCalendarItems(
     title: string;
     start: Date;
     end?: Date;
-    type: "class" | "assignment" | "exam" | "milestone";
+    type: "class" | "assignment" | "exam" | "milestone" | "group";
     color?: string | null;
     description?: string | null;
     location?: string | null;
@@ -165,6 +166,23 @@ async function buildCalendarItems(
           end: addHours(item.dueDate!, 1),
           type: "milestone" as const,
           description: item.description ?? `Proyecto: ${item.project.name}`,
+        })),
+    );
+  }
+
+  if (types.has("group")) {
+    const groupEvents = await listGroupCalendarEventsForUser(userId);
+    events.push(
+      ...groupEvents
+        .filter((item) => (courseId ? item.courseId === courseId : true))
+        .map((item) => ({
+          id: item.id,
+          title: `${item.title} (${item.sourceUserName})`,
+          start: new Date(item.start),
+          end: item.end ? new Date(item.end) : undefined,
+          type: "group" as const,
+          color: "#2563eb",
+          description: item.courseName ? `Materia: ${item.courseName}` : "Evento compartido de grupo",
         })),
     );
   }
