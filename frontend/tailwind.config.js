@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const withOpacity = (cssVariable) => `rgb(var(${cssVariable}) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   darkMode: "class",
@@ -18,18 +20,28 @@ export default {
           900: "#333e4d",
         },
         brand: {
-          50: "#eef3ff",
-          100: "#d9e5ff",
-          500: "#2f5be7",
-          600: "#264ad1",
-          700: "#213ea6",
+          50: withOpacity("--brand-50-rgb"),
+          100: withOpacity("--brand-100-rgb"),
+          200: withOpacity("--brand-200-rgb"),
+          300: withOpacity("--brand-300-rgb"),
+          400: withOpacity("--brand-400-rgb"),
+          500: withOpacity("--brand-500-rgb"),
+          600: withOpacity("--brand-600-rgb"),
+          700: withOpacity("--brand-700-rgb"),
+          800: withOpacity("--brand-800-rgb"),
+          900: withOpacity("--brand-900-rgb"),
         },
         accent: {
-          50: "#eefbf6",
-          100: "#d5f5e8",
-          500: "#27b37e",
-          600: "#1c9366",
-          700: "#1a7655",
+          50: withOpacity("--accent-50-rgb"),
+          100: withOpacity("--accent-100-rgb"),
+          200: withOpacity("--accent-200-rgb"),
+          300: withOpacity("--accent-300-rgb"),
+          400: withOpacity("--accent-400-rgb"),
+          500: withOpacity("--accent-500-rgb"),
+          600: withOpacity("--accent-600-rgb"),
+          700: withOpacity("--accent-700-rgb"),
+          800: withOpacity("--accent-800-rgb"),
+          900: withOpacity("--accent-900-rgb"),
         },
         danger: {
           50: "#fff2f1",
