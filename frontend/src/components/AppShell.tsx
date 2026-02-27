@@ -63,19 +63,43 @@ const quickActions = [
   { to: "/projects", label: "Nuevo proyecto" },
 ];
 
+type PaletteSearchType = "all" | "course" | "assignment" | "exam" | "project";
+
+const paletteTypeOrder: PaletteSearchType[] = ["all", "assignment", "exam", "course", "project"];
+const paletteTypeShortcutMap: Record<string, PaletteSearchType> = {
+  t: "assignment",
+  e: "exam",
+  m: "course",
+  p: "project",
+};
+
+const paletteQuickActions: Array<{ label: string; description: string; to: string }> = [
+  { label: "Iniciar sesion de estudio", description: "Abre Focus Mode para empezar a estudiar.", to: "/dashboard?focus=1" },
+  { label: "Nueva tarea", description: "Crear una nueva entrega rapidamente.", to: "/assignments" },
+  { label: "Nuevo examen", description: "Registrar fecha y recordatorios de examen.", to: "/exams" },
+  { label: "Ver hoy", description: "Abrir la vista priorizada del dia.", to: "/today" },
+];
+
 const ONBOARDING_DONE_KEY = "uniplanner_onboarding_done_v1";
 const PUSH_SENT_KEY = "uniplanner_browser_push_sent_v1";
 
 function entityLabel(type: SearchItem["entityType"]): string {
   if (type === "course") return "Materia";
+  if (type === "archived_course") return "Archivado";
   if (type === "assignment") return "Tarea";
-  return "Examen";
+  if (type === "exam") return "Examen";
+  if (type === "project") return "Proyecto";
+  if (type === "task") return "Kanban";
+  return "Estudio";
 }
 
 function entityRoute(type: SearchItem["entityType"]): string {
   if (type === "course") return "/courses";
+  if (type === "archived_course") return "/history";
   if (type === "assignment") return "/assignments";
-  return "/exams";
+  if (type === "exam") return "/exams";
+  if (type === "project" || type === "task") return "/projects";
+  return "/dashboard";
 }
 
 export function AppShell({ children }: PropsWithChildren) {
@@ -84,7 +108,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [searchType, setSearchType] = useState<"all" | "course" | "assignment" | "exam">("all");
+  const [searchType, setSearchType] = useState<PaletteSearchType>("all");
   const [searchPage, setSearchPage] = useState(1);
   const [searchData, setSearchData] = useState<SearchResponse | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -93,7 +117,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const [onboardingStep, setOnboardingStep] = useState(0);
   const headerRef = useRef<HTMLElement>(null);
   const paletteInputRef = useRef<HTMLInputElement>(null);
-  const debouncedQuery = useDebounce(query);
+  const debouncedQuery = useDebounce(query, 200);
 
   const { user, logout, refreshProfile } = useAuth();
   const { isDark, setDarkMode, preset, setPreset } = useTheme();
@@ -379,7 +403,32 @@ export function AppShell({ children }: PropsWithChildren) {
     setPaletteOpen(false);
   }
 
+  function cyclePaletteType() {
+    const currentIndex = paletteTypeOrder.indexOf(searchType);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % paletteTypeOrder.length : 0;
+    setSearchType(paletteTypeOrder[nextIndex] ?? "all");
+  }
+
   function onPaletteInputKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Tab") {
+      event.preventDefault();
+      cyclePaletteType();
+      return;
+    }
+
+    const shortcutType = paletteTypeShortcutMap[event.key.toLowerCase()];
+    if (
+      shortcutType &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      query.trim().length === 0
+    ) {
+      event.preventDefault();
+      setSearchType(shortcutType);
+      return;
+    }
+
     const items = searchData?.items ?? [];
     if (!items.length) return;
 
@@ -656,23 +705,46 @@ export function AppShell({ children }: PropsWithChildren) {
               <select
                 className="rounded-lg border border-ink-200 bg-white px-2 py-1 text-xs text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300"
                 value={searchType}
-                onChange={(event) => setSearchType(event.target.value as "all" | "course" | "assignment" | "exam")}
+                onChange={(event) => setSearchType(event.target.value as PaletteSearchType)}
               >
                 <option value="all">Todo</option>
                 <option value="course">Materias</option>
                 <option value="assignment">Tareas</option>
                 <option value="exam">Examenes</option>
+                <option value="project">Proyectos</option>
               </select>
               <p className="text-xs text-ink-500 dark:text-ink-400">
                 <span className="hidden sm:inline">
-                  <span className="font-semibold text-ink-700 dark:text-ink-300">Atajos:</span> flechas para navegar, enter para abrir
+                  <span className="font-semibold text-ink-700 dark:text-ink-300">Atajos:</span> Tab cambia filtro, T/E/M/P seleccionan tipo, flechas navegan, enter abre
                 </span>
                 <span className="sm:hidden">Toca un resultado para abrir</span>
               </p>
             </div>
 
             <div className="flex-1 overflow-auto p-3">
-              {query.length < 2 && (
+              {query.trim().length === 0 && (
+                <div className="space-y-3 rounded-2xl border border-dashed border-ink-200 bg-ink-50/40 p-4 dark:border-ink-700 dark:bg-ink-800/30">
+                  <p className="font-display text-lg font-semibold text-ink-800 dark:text-ink-200">Acciones rapidas</p>
+                  <div className="space-y-2">
+                    {paletteQuickActions.map((action) => (
+                      <button
+                        key={action.to}
+                        type="button"
+                        className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2 text-left transition hover:border-brand-200 hover:bg-brand-50/60 dark:border-ink-700 dark:bg-[var(--surface)] dark:hover:border-brand-700/60 dark:hover:bg-brand-700/15"
+                        onClick={() => {
+                          navigate(action.to);
+                          setPaletteOpen(false);
+                        }}
+                      >
+                        <p className="text-sm font-semibold text-ink-800 dark:text-ink-200">{action.label}</p>
+                        <p className="text-xs text-ink-600 dark:text-ink-400">{action.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {query.trim().length > 0 && query.length < 2 && (
                 <div className="rounded-2xl border border-dashed border-ink-200 bg-ink-50/40 p-6 text-center dark:border-ink-700 dark:bg-ink-800/30">
                   <p className="font-display text-lg font-semibold text-ink-800 dark:text-ink-200">Busqueda global</p>
                   <p className="mt-1 text-sm text-ink-600 dark:text-ink-400">Escribe al menos 2 caracteres para iniciar.</p>
@@ -716,7 +788,7 @@ export function AppShell({ children }: PropsWithChildren) {
                       <p className="text-xs text-ink-600 dark:text-ink-400">{item.subtitle}</p>
                     </div>
                     <span className="rounded-full border border-ink-200 px-2 py-0.5 text-[0.64rem] uppercase tracking-wide text-ink-500 dark:border-ink-700 dark:text-ink-400">
-                      {item.entityType}
+                      {entityLabel(item.entityType)}
                     </span>
                   </button>
                 ))}

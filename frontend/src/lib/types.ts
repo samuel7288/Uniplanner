@@ -294,7 +294,7 @@ export type PaginatedResponse<T> = {
 
 export type SearchItem = {
   id: string;
-  entityType: "course" | "assignment" | "exam";
+  entityType: "course" | "archived_course" | "assignment" | "exam" | "project" | "task" | "study_session";
   title: string;
   subtitle: string;
   updatedAt: string;
@@ -305,8 +305,12 @@ export type SearchResponse = {
   items: SearchItem[];
   counts: {
     courses: number;
+    archivedCourses: number;
     assignments: number;
     exams: number;
+    projects: number;
+    tasks: number;
+    studySessions: number;
     total: number;
   };
   pagination: PaginationMeta;
@@ -316,6 +320,6 @@ export type SearchResponse = {
   };
   filters: {
     q: string;
-    type: "all" | "course" | "assignment" | "exam";
+    type: "all" | "course" | "assignment" | "exam" | "project";
   };
 };
