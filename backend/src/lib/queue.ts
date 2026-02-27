@@ -1,6 +1,7 @@
-import { Queue } from "bullmq";
+import { Queue, QueueEvents } from "bullmq";
 import { Redis } from "ioredis";
 import { env } from "../config/env";
+import { logger } from "./logger";
 
 export const redisConnection = new Redis(env.REDIS_URL, {
   password: env.REDIS_PASSWORD,
@@ -54,4 +55,29 @@ export const notificationQueue = new Queue<NotificationJobData>("notifications",
     removeOnComplete: { count: 200 },
     removeOnFail: { count: 100 },
   },
+});
+
+export const notificationQueueEvents = new QueueEvents("notifications", {
+  connection: redisConnection,
+});
+
+notificationQueueEvents.on("failed", async ({ jobId, failedReason }) => {
+  const job = jobId ? await notificationQueue.getJob(jobId) : null;
+  logger.error(
+    {
+      jobId,
+      failedReason,
+      eventKey: job?.data?.eventKey,
+      userId: job?.data?.userId,
+    },
+    "Notification queue job failed",
+  );
+});
+
+notificationQueueEvents.on("stalled", ({ jobId }) => {
+  logger.warn({ jobId }, "Notification queue job stalled");
+});
+
+notificationQueueEvents.on("error", (err) => {
+  logger.error({ err }, "Notification queue events stream error");
 });

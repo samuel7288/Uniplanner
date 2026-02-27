@@ -25,25 +25,52 @@ router.get(
       params: z.object({}).passthrough(),
       query: z.object({
         courseId: z.string().optional(),
+        page: z.coerce.number().int().min(1).optional(),
+        limit: z.coerce.number().int().min(1).max(100).optional(),
       }),
     }),
   ),
   asyncHandler(async (req, res) => {
-    const { courseId } = req.query as { courseId?: string };
-    const grades = await prisma.grade.findMany({
-      where: {
-        userId: req.user!.userId,
-        courseId,
-      },
-      include: {
-        course: true,
-      },
-      orderBy: {
-        createdAt: "desc",
+    const { courseId, page, limit } = req.query as {
+      courseId?: string;
+      page?: number;
+      limit?: number;
+    };
+    const normalizedPage = page ?? 1;
+    const normalizedLimit = limit ?? 50;
+    const where = {
+      userId: req.user!.userId,
+      courseId,
+    };
+
+    const [total, grades] = await prisma.$transaction([
+      prisma.grade.count({ where }),
+      prisma.grade.findMany({
+        where,
+        include: {
+          course: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip: (normalizedPage - 1) * normalizedLimit,
+        take: normalizedLimit,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / normalizedLimit);
+
+    res.json({
+      items: grades,
+      pagination: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        total,
+        totalPages,
+        hasNext: normalizedPage < totalPages,
+        hasPrev: normalizedPage > 1,
       },
     });
-
-    res.json(grades);
   }),
 );
 

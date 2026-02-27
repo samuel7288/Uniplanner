@@ -10,6 +10,7 @@ declare global {
 
     interface Request {
       user?: UserPayload;
+      requestId?: string;
     }
   }
 }

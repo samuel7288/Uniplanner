@@ -31,6 +31,10 @@ const taskSchema = z.object({
   status: z.nativeEnum(ProjectTaskStatus).optional(),
 });
 
+function hasInvalidDateRange(startDate?: Date | null, dueDate?: Date | null): boolean {
+  return Boolean(startDate && dueDate && startDate > dueDate);
+}
+
 router.use(requireAuth);
 
 const listProjectsSchema = z.object({
@@ -139,6 +143,11 @@ router.post(
   asyncHandler(async (req, res) => {
     const payload = req.body;
 
+    if (hasInvalidDateRange(payload.startDate, payload.dueDate)) {
+      res.status(400).json({ message: "startDate must be before or equal to dueDate" });
+      return;
+    }
+
     if (payload.courseId) {
       const course = await prisma.course.findFirst({
         where: { id: payload.courseId, userId: req.user!.userId },
@@ -219,6 +228,13 @@ router.put(
         res.status(400).json({ message: "Invalid courseId" });
         return;
       }
+    }
+
+    const nextStartDate = req.body.startDate !== undefined ? req.body.startDate : current.startDate;
+    const nextDueDate = req.body.dueDate !== undefined ? req.body.dueDate : current.dueDate;
+    if (hasInvalidDateRange(nextStartDate, nextDueDate)) {
+      res.status(400).json({ message: "startDate must be before or equal to dueDate" });
+      return;
     }
 
     const updated = await prisma.project.update({

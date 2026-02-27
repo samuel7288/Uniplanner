@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
@@ -26,6 +27,20 @@ const updatePreferencesSchema = z.object({
     themePreset: z.enum(["ocean", "forest", "sunset", "violet"]).optional(),
     browserPushEnabled: z.boolean().optional(),
   }),
+  query: z.object({}).passthrough(),
+  params: z.object({}).passthrough(),
+});
+
+const changePasswordSchema = z.object({
+  body: z
+    .object({
+      currentPassword: z.string().min(8).max(72),
+      newPassword: z.string().min(8).max(72),
+    })
+    .refine((data) => data.currentPassword !== data.newPassword, {
+      path: ["newPassword"],
+      message: "La nueva contraseña debe ser diferente a la actual",
+    }),
   query: z.object({}).passthrough(),
   params: z.object({}).passthrough(),
 });
@@ -99,6 +114,51 @@ router.put(
     });
 
     res.json(updated);
+  }),
+);
+
+router.post(
+  "/change-password",
+  validate(changePasswordSchema),
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword: string;
+      newPassword: string;
+    };
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { id: true, passwordHash: true },
+    });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const matches = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!matches) {
+      res.status(400).json({ message: "La contraseña actual no es correcta" });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      }),
+      prisma.refreshToken.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    res.clearCookie("refreshToken", { path: "/api/auth" });
+    res.json({
+      message: "Password updated successfully",
+    });
   }),
 );
 
