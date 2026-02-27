@@ -61,6 +61,7 @@ export function Card({
     <section
       className={clsx(
         "surface-border surface-elevated rounded-2xl p-4 md:p-6",
+        tone === "default" && "bg-gradient-to-b from-[var(--surface)] to-[var(--surface-soft)]",
         tone === "brand" &&
           "border-brand-100 bg-gradient-to-b from-brand-50/80 to-white dark:border-brand-700/40 dark:from-brand-700/15 dark:to-[var(--surface)]",
         tone === "success" &&
@@ -500,3 +501,4 @@ export function StatCard({
     </Card>
   );
 }
+
