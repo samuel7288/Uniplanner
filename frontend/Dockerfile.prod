@@ -13,7 +13,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
-FROM nginx:1.27.0-alpine3.20 AS runtime
+FROM nginx:1.27.0-alpine AS runtime
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy as template so envsubst can inject BACKEND_INTERNAL_URL at start time.
