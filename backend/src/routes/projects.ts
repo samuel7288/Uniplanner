@@ -84,8 +84,20 @@ router.get(
         where,
         include: {
           course: true,
-          milestones: true,
-          tasks: true,
+          _count: {
+            select: {
+              milestones: true,
+              tasks: true,
+            },
+          },
+          milestones: {
+            orderBy: { dueDate: "asc" },
+            take: 5,
+          },
+          tasks: {
+            orderBy: { createdAt: "desc" },
+            take: 30,
+          },
         },
         orderBy: {
           [normalizedSortBy]: normalizedSortDir,

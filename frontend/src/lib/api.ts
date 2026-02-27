@@ -15,8 +15,17 @@ let queue: QueuedRequest[] = [];
 
 const DEBUG_AUTH = import.meta.env.DEV;
 
+function getTokenStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage;
+}
+
 function getAccessToken(): string | null {
-  return localStorage.getItem(ACCESS_TOKEN_KEY);
+  return getTokenStorage()?.getItem(ACCESS_TOKEN_KEY) ?? null;
+}
+
+export function hasAccessToken(): boolean {
+  return Boolean(getAccessToken());
 }
 
 function processQueue(error: unknown, token: string | null): void {
@@ -27,14 +36,14 @@ function processQueue(error: unknown, token: string | null): void {
   queue = [];
 }
 
-/** Store only the short-lived access token in localStorage.
+/** Store only the short-lived access token in sessionStorage.
  *  The long-lived refresh token lives in an HttpOnly cookie set by the backend. */
 export function setAuthTokens(accessToken: string): void {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  getTokenStorage()?.setItem(ACCESS_TOKEN_KEY, accessToken);
 }
 
 export function clearAuthTokens(): void {
-  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  getTokenStorage()?.removeItem(ACCESS_TOKEN_KEY);
 }
 
 export const api = axios.create({

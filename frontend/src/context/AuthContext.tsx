@@ -1,7 +1,7 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { api, clearAuthTokens, getErrorMessage, isNetworkError, setAuthTokens } from "../lib/api";
+import { api, clearAuthTokens, getErrorMessage, hasAccessToken, isNetworkError, setAuthTokens } from "../lib/api";
 import type { User } from "../lib/types";
 
 type AuthContextValue = {
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   async function bootstrap(): Promise<void> {
     if (DEBUG_AUTH) {
       console.debug("[auth][bootstrap] start", {
-        hasAccessToken: Boolean(localStorage.getItem("uniplanner_access_token")),
+        hasAccessToken: hasAccessToken(),
       });
     }
 
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } finally {
       if (DEBUG_AUTH) {
         console.debug("[auth][bootstrap] end", {
-          hasAccessToken: Boolean(localStorage.getItem("uniplanner_access_token")),
+          hasAccessToken: hasAccessToken(),
         });
       }
       setIsLoading(false);
