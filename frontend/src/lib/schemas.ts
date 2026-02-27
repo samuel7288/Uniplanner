@@ -144,3 +144,16 @@ export const StudyWeekSummarySchema = z.object({
     }),
   ),
 });
+
+export const StudyGoalProgressSchema = z.array(
+  z.object({
+    courseId: z.string(),
+    courseName: z.string(),
+    code: z.string(),
+    color: z.string().nullable(),
+    weeklyMinutes: z.number(),
+    completedMinutes: z.number(),
+    percentage: z.number(),
+    sessions: z.number(),
+  }),
+);

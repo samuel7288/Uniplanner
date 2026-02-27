@@ -12,12 +12,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api, getErrorMessage } from "../lib/api";
-import { DashboardSummarySchema, StudyWeekSummarySchema } from "../lib/schemas";
+import { DashboardSummarySchema, StudyGoalProgressSchema, StudyWeekSummarySchema } from "../lib/schemas";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { useWeeklyLoad } from "../hooks/useWeeklyLoad";
 import { WeeklyLoadChart } from "./dashboard/WeeklyLoadChart";
+import { StudyGoalsPanel } from "./dashboard/StudyGoalsPanel";
 import { WeeklyStudyChart } from "./dashboard/WeeklyStudyChart";
-import type { Assignment, Course, DashboardSummary, StudyWeekSummary, WeeklyPlanResponse } from "../lib/types";
+import type {
+  Assignment,
+  Course,
+  DashboardSummary,
+  StudyGoalProgress,
+  StudyWeekSummary,
+  WeeklyPlanResponse,
+} from "../lib/types";
 import { Alert, Badge, Button, Card, DashboardSkeleton, EmptyState, Field, PageTitle, SelectInput, StatCard } from "../components/UI";
 
 const initialSummary: DashboardSummary = {
@@ -90,6 +98,9 @@ export function DashboardPage() {
   const [studyWeekSummary, setStudyWeekSummary] = useState<StudyWeekSummary | null>(null);
   const [studyWeekLoading, setStudyWeekLoading] = useState(true);
   const [studyWeekError, setStudyWeekError] = useState("");
+  const [studyGoals, setStudyGoals] = useState<StudyGoalProgress[]>([]);
+  const [studyGoalsLoading, setStudyGoalsLoading] = useState(true);
+  const [studyGoalsError, setStudyGoalsError] = useState("");
   const [pomodoroHydrated, setPomodoroHydrated] = useState(false);
   const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
   const { data: weeklyLoadData, loading: weeklyLoadLoading, error: weeklyLoadError } = useWeeklyLoad(12);
@@ -108,6 +119,18 @@ export function DashboardPage() {
       return null;
     } finally {
       setStudyWeekLoading(false);
+    }
+  }
+
+  async function loadStudyGoals() {
+    try {
+      const response = await api.get<StudyGoalProgress[]>("/study-goals");
+      setStudyGoals(StudyGoalProgressSchema.parse(response.data));
+      setStudyGoalsError("");
+    } catch (err) {
+      setStudyGoalsError(getErrorMessage(err));
+    } finally {
+      setStudyGoalsLoading(false);
     }
   }
 
@@ -133,6 +156,7 @@ export function DashboardPage() {
       });
 
       const refreshed = await loadStudyWeekSummary();
+      await loadStudyGoals();
       const fallbackCourseName = courses.find((course) => course.id === courseId)?.name ?? "la materia";
 
       if (refreshed) {
@@ -355,6 +379,11 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    setStudyGoalsLoading(true);
+    void loadStudyGoals();
+  }, []);
+
+  useEffect(() => {
     if (courses.length === 0) {
       setFocusCourseId("");
       return;
@@ -424,6 +453,35 @@ export function DashboardPage() {
       .sort((a, b) => a.detail.localeCompare(b.detail))
       .slice(0, 8);
   }, [focusCourseId, summary.focusTasks, summary.upcomingExams]);
+
+  async function handleEditStudyGoal(goal: StudyGoalProgress) {
+    const suggested = goal.weeklyMinutes > 0 ? goal.weeklyMinutes : 180;
+    const value = window.prompt(
+      `Meta semanal para ${goal.courseName} (en minutos):`,
+      String(suggested),
+    );
+    if (value === null) return;
+
+    const weeklyMinutes = Math.round(Number(value));
+    if (!Number.isFinite(weeklyMinutes) || weeklyMinutes <= 0) {
+      toast.error("Ingresa un numero valido de minutos.");
+      return;
+    }
+
+    try {
+      await api.put(`/study-goals/${goal.courseId}`, { weeklyMinutes });
+      await loadStudyGoals();
+      toast.success("Meta semanal actualizada.");
+    } catch (err) {
+      setStudyGoalsError(getErrorMessage(err));
+      toast.error("No se pudo guardar la meta.");
+    }
+  }
+
+  function openFocusFromGoal(courseId: string) {
+    setFocusCourseId(courseId);
+    openFocusMode();
+  }
 
   function openFocusMode() {
     localStorage.setItem(FOCUS_MODE_STORAGE_KEY, "true");
@@ -571,6 +629,16 @@ export function DashboardPage() {
             data={studyWeekSummary}
             loading={studyWeekLoading}
             error={studyWeekError}
+          />
+
+          <StudyGoalsPanel
+            goals={studyGoals}
+            loading={studyGoalsLoading}
+            error={studyGoalsError}
+            onEditGoal={(goal) => {
+              void handleEditStudyGoal(goal);
+            }}
+            onOpenFocus={openFocusFromGoal}
           />
 
           <div className="grid gap-4 xl:grid-cols-[1.2fr,0.8fr]">

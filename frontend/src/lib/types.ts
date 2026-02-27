@@ -179,6 +179,17 @@ export type StudyWeekSummary = {
   sessions: StudySession[];
 };
 
+export type StudyGoalProgress = {
+  courseId: string;
+  courseName: string;
+  code: string;
+  color: string | null;
+  weeklyMinutes: number;
+  completedMinutes: number;
+  percentage: number;
+  sessions: number;
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;

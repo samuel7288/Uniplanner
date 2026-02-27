@@ -1,8 +1,9 @@
-import { addDays, addMinutes, subMinutes } from "date-fns";
+import { addDays, addMinutes, endOfWeek, startOfWeek, subMinutes } from "date-fns";
 import cron from "node-cron";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
 import { isRedisReady, notificationQueue, type NotificationJobData } from "./queue";
+import { listStudyGoalsInRange } from "../services/studyGoalsService";
 
 // ── Throttle repeated dependency-unavailable warnings to once every 5 minutes ──
 const THROTTLE_MS = 5 * 60 * 1000;
@@ -196,6 +197,58 @@ async function processMilestoneReminders(now: Date): Promise<void> {
   }
 }
 
+async function processStudyGoalNotifications(now: Date): Promise<void> {
+  // Run once a day at 09:00 to avoid noisy reminders.
+  if (!(now.getHours() === 9 && now.getMinutes() === 0)) return;
+
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const weekKey = weekStart.toISOString().slice(0, 10);
+  const isReminderDay = now.getDay() === 3 || now.getDay() === 5; // Wed or Fri
+
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      notifyEmail: true,
+    },
+  });
+
+  for (const user of users) {
+    const goals = await listStudyGoalsInRange(user.id, weekStart, weekEnd);
+    for (const goal of goals) {
+      if (goal.weeklyMinutes <= 0) continue;
+
+      if (goal.completedMinutes >= goal.weeklyMinutes) {
+        await enqueue({
+          eventKey: `study-goal:achieved:${user.id}:${goal.courseId}:${weekKey}`,
+          userId: user.id,
+          title: "Meta semanal cumplida",
+          message: `Completaste ${goal.weeklyMinutes} min en ${goal.courseName} esta semana.`,
+          type: "SYSTEM",
+          scheduledFor: now.toISOString(),
+          userEmail: user.email,
+          notifyEmail: user.notifyEmail,
+        });
+        continue;
+      }
+
+      if (!isReminderDay || goal.percentage >= 40) continue;
+
+      await enqueue({
+        eventKey: `study-goal:reminder:${now.getDay()}:${user.id}:${goal.courseId}:${weekKey}`,
+        userId: user.id,
+        title: "Recordatorio de meta semanal",
+        message: `Llevas ${goal.completedMinutes} min en ${goal.courseName}. Meta: ${goal.weeklyMinutes} min.`,
+        type: "SYSTEM",
+        scheduledFor: now.toISOString(),
+        userEmail: user.email,
+        notifyEmail: user.notifyEmail,
+      });
+    }
+  }
+}
+
 export function startScheduler(): void {
   cron.schedule("* * * * *", async () => {
     const now = new Date();
@@ -220,9 +273,10 @@ export function startScheduler(): void {
       processExamReminders(now),
       processAssignmentReminders(now),
       processMilestoneReminders(now),
+      processStudyGoalNotifications(now),
     ]);
 
-    const labels = ["ExamReminders", "AssignmentReminders", "MilestoneReminders"];
+    const labels = ["ExamReminders", "AssignmentReminders", "MilestoneReminders", "StudyGoalNotifications"];
     results.forEach((result, i) => {
       if (result.status === "rejected") {
         logger.error({ err: result.reason }, `Scheduler: ${labels[i]} processor failed`);
