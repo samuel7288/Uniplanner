@@ -126,6 +126,34 @@ export type DashboardSummary = {
   focusTasks: Assignment[];
 };
 
+export type SemesterHistoryCourse = {
+  id: string;
+  name: string;
+  code: string;
+  finalAverage: number | null;
+  coveredWeight: number;
+  gradesCount: number;
+  archivedAt: string | null;
+};
+
+export type SemesterHistoryBucket = {
+  semester: string;
+  archivedAt: string;
+  gpa: number | null;
+  courseCount: number;
+  gradedCourses: number;
+  courses: SemesterHistoryCourse[];
+};
+
+export type SemesterHistoryResponse = {
+  semesters: SemesterHistoryBucket[];
+  cumulative: Array<{
+    semester: string;
+    gpa: number | null;
+    cumulativeGpa: number | null;
+  }>;
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;

@@ -82,3 +82,33 @@ export const DashboardSummarySchema = z.object({
   ),
   focusTasks: z.array(AssignmentSchema),
 });
+
+export const SemesterHistoryResponseSchema = z.object({
+  semesters: z.array(
+    z.object({
+      semester: z.string(),
+      archivedAt: z.string(),
+      gpa: z.number().nullable(),
+      courseCount: z.number(),
+      gradedCourses: z.number(),
+      courses: z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          code: z.string(),
+          finalAverage: z.number().nullable(),
+          coveredWeight: z.number(),
+          gradesCount: z.number(),
+          archivedAt: z.string().nullable(),
+        }),
+      ),
+    }),
+  ),
+  cumulative: z.array(
+    z.object({
+      semester: z.string(),
+      gpa: z.number().nullable(),
+      cumulativeGpa: z.number().nullable(),
+    }),
+  ),
+});

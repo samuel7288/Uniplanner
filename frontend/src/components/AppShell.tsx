@@ -1,4 +1,5 @@
 import {
+  ArchiveBoxIcon,
   Bars3Icon,
   BellIcon,
   CalendarDaysIcon,
@@ -36,6 +37,7 @@ const navItems = [
   { to: "/exams", label: "Examenes", icon: ClipboardDocumentListIcon },
   { to: "/projects", label: "Proyectos", icon: RectangleGroupIcon },
   { to: "/calendar", label: "Calendario", icon: CalendarDaysIcon },
+  { to: "/history", label: "Historial", icon: ArchiveBoxIcon },
   { to: "/notifications", label: "Notificaciones", icon: BellIcon },
   { to: "/settings", label: "Ajustes", icon: UserCircleIcon },
 ];
@@ -48,6 +50,7 @@ const pageMeta = [
   { match: "/exams", title: "Examenes", subtitle: "Organiza fechas clave y recordatorios por asignatura." },
   { match: "/projects", title: "Proyectos", subtitle: "Coordina milestones y flujo kanban sin perder contexto." },
   { match: "/calendar", title: "Calendario", subtitle: "Consolida clases, tareas y examenes en una sola vista." },
+  { match: "/history", title: "Historial", subtitle: "Consulta semestres archivados y GPA acumulado." },
   { match: "/notifications", title: "Notificaciones", subtitle: "Revisa alertas pendientes y acciones recientes." },
   { match: "/settings", title: "Ajustes", subtitle: "Personaliza perfil, zona horaria y preferencias." },
 ];

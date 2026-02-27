@@ -50,6 +50,7 @@ router.get(
         prisma.course.findMany({
           where: {
             userId: req.user!.userId,
+            archived: false,
           },
           include: {
             grades: true,

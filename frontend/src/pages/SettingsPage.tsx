@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, type ThemePreset } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
@@ -18,6 +19,7 @@ const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }
 
 export function SettingsPage() {
   const { user, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const { isDark, toggleDark, preset, setPreset, setDarkMode } = useTheme();
   const {
     supported: browserNotifSupported,
@@ -37,6 +39,7 @@ export function SettingsPage() {
   });
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [archiveLoading, setArchiveLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -103,6 +106,34 @@ export function SettingsPage() {
       setMessage("Perfil actualizado.");
     } catch (err) {
       setError(getErrorMessage(err));
+    }
+  }
+
+  async function archiveCurrentSemester() {
+    const confirmed = window.confirm(
+      "Se archivaran las materias del semestre activo y ya no apareceran en la vista principal. Continuar?",
+    );
+    if (!confirmed) return;
+
+    setError("");
+    setMessage("");
+    setArchiveLoading(true);
+
+    try {
+      const response = await api.patch<{ semester: string | null; archivedCount: number }>("/courses/archive-semester", {});
+      const { semester, archivedCount } = response.data;
+
+      if (archivedCount === 0) {
+        setMessage("No hay materias activas para archivar.");
+        return;
+      }
+
+      const semesterLabel = semester ? ` del semestre ${semester}` : "";
+      setMessage(`Se archivaron ${archivedCount} materias${semesterLabel}.`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setArchiveLoading(false);
     }
   }
 
@@ -214,6 +245,23 @@ export function SettingsPage() {
             </div>
           </>
         )}
+      </Card>
+
+      <Card className="max-w-xl space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Historial academico
+        </h2>
+        <p className="text-sm text-ink-600 dark:text-ink-400">
+          Archiva el semestre actual para congelar materias y consultar su GPA en la vista de historial.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={() => void archiveCurrentSemester()} disabled={archiveLoading}>
+            {archiveLoading ? "Archivando..." : "Archivar semestre"}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => navigate("/history")}>
+            Ver historial
+          </Button>
+        </div>
       </Card>
 
       {/* Perfil */}

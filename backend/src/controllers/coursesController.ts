@@ -1,6 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler";
 import type {
   AddSessionBody,
+  ArchiveSemesterBody,
   CreateCourseBody,
   GradeProjectionQuery,
   ImportCoursesBody,
@@ -9,10 +10,12 @@ import type {
 } from "../validators/coursesValidators";
 import {
   addClassSession,
+  archiveSemester,
   createCourse,
   deleteClassSession,
   deleteCourse,
   getCourseById,
+  getArchivedCoursesHistory,
   getGradeProjection,
   getWeeklySchedule,
   importCourses,
@@ -80,4 +83,15 @@ export const importCoursesHandler = asyncHandler(async (req, res) => {
   const { courses } = req.body as ImportCoursesBody;
   const result = await importCourses(req.user!.userId, courses);
   res.json(result);
+});
+
+export const archiveSemesterHandler = asyncHandler(async (req, res) => {
+  const payload = req.body as ArchiveSemesterBody;
+  const result = await archiveSemester(req.user!.userId, payload);
+  res.json(result);
+});
+
+export const getCoursesHistoryHandler = asyncHandler(async (req, res) => {
+  const history = await getArchivedCoursesHistory(req.user!.userId);
+  res.json(history);
 });

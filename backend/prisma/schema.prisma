@@ -118,6 +118,8 @@ model Course {
   credits    Int?
   color      String?
   semester   String?
+  archived   Boolean        @default(false)
+  archivedAt DateTime?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
@@ -130,6 +132,7 @@ model Course {
 
   @@unique([userId, code])
   @@index([userId])
+  @@index([userId, archived])
 }
 
 model ClassSession {
