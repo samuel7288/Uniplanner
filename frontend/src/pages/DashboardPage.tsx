@@ -90,6 +90,7 @@ export function DashboardPage() {
   const [studyWeekSummary, setStudyWeekSummary] = useState<StudyWeekSummary | null>(null);
   const [studyWeekLoading, setStudyWeekLoading] = useState(true);
   const [studyWeekError, setStudyWeekError] = useState("");
+  const [pomodoroHydrated, setPomodoroHydrated] = useState(false);
   const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
   const { data: weeklyLoadData, loading: weeklyLoadLoading, error: weeklyLoadError } = useWeeklyLoad(12);
 
@@ -275,11 +276,13 @@ export function DashboardPage() {
 
   useEffect(() => {
     restorePomodoroState();
+    setPomodoroHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!pomodoroHydrated) return;
     savePomodoroState();
-  }, [focusCourseId, pomodoroCourseId, pomodoroRunning, pomodoroSeconds, pomodoroStartedAt]);
+  }, [focusCourseId, pomodoroCourseId, pomodoroHydrated, pomodoroRunning, pomodoroSeconds, pomodoroStartedAt]);
 
   useEffect(() => {
     if (location.pathname !== "/dashboard" || isFocusMode) return;
