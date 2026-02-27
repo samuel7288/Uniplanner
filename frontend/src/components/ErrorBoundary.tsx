@@ -28,20 +28,20 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 p-8 text-center">
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-ink-50 p-8 text-center dark:bg-ink-900">
           <div className="text-5xl">💥</div>
-          <h1 className="text-2xl font-bold text-slate-800">Algo salió mal</h1>
-          <p className="max-w-md text-slate-500">
+          <h1 className="text-2xl font-bold text-ink-800 dark:text-ink-100">Algo salió mal</h1>
+          <p className="max-w-md text-ink-500 dark:text-ink-400">
             Ocurrió un error inesperado en la aplicación. Puedes intentar recargar la página.
           </p>
           {this.state.error && (
-            <pre className="max-w-lg overflow-auto rounded-lg bg-red-50 px-4 py-3 text-left text-xs text-red-700">
+            <pre className="max-w-lg overflow-auto rounded-lg bg-red-50 px-4 py-3 text-left text-xs text-red-700 dark:bg-red-900/20 dark:text-red-400">
               {this.state.error.message}
             </pre>
           )}
           <button
             onClick={this.handleReload}
-            className="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-600"
+            className="rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Recargar página
           </button>
@@ -52,3 +52,4 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+

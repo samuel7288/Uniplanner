@@ -73,7 +73,7 @@ export function RegisterPage() {
         footer={
           <p>
             Ya tienes cuenta?{" "}
-            <Link className="font-semibold text-brand-700" to="/login">
+            <Link className="font-semibold text-brand-700 dark:text-brand-400" to="/login">
               Inicia sesion
             </Link>
           </p>
