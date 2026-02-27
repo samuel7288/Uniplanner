@@ -212,6 +212,13 @@ model Exam {
   location        String?
   syllabus        String?
   weight          Float?
+  obtainedGrade   Float?
+  studyHoursLogged Float?
+  feelingScore    Int?
+  retroNotes      String?
+  retroCompletedAt DateTime?
+  retroDismissed  Boolean   @default(false)
+  retroDismissedAt DateTime?
   reminderOffsets Int[]     @default([10080, 4320, 1440, 360, 60])
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

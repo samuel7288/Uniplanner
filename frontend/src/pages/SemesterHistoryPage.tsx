@@ -9,6 +9,12 @@ import type { SemesterHistoryResponse } from "../lib/types";
 const initialHistory: SemesterHistoryResponse = {
   semesters: [],
   cumulative: [],
+  insights: {
+    samples: 0,
+    avgWhenOver6h: null,
+    avgWhenUnder3h: null,
+    bestCourseByEfficiency: null,
+  },
 };
 
 function formatAverage(value: number | null): string {
@@ -127,6 +133,34 @@ export function SemesterHistoryPage() {
                 />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">Patron de rendimiento</h2>
+        {loading ? (
+          <div className="mt-3 space-y-2">
+            <Skeleton className="h-4 w-80" variant="text-line" />
+            <Skeleton className="h-4 w-72" variant="text-line" />
+            <Skeleton className="h-4 w-64" variant="text-line" />
+          </div>
+        ) : history.insights.samples === 0 ? (
+          <p className="mt-2 text-sm text-ink-600 dark:text-ink-400">
+            Aun no hay retrospectivas suficientes para calcular correlaciones estudio/nota.
+          </p>
+        ) : (
+          <div className="mt-2 space-y-1 text-sm text-ink-700 dark:text-ink-300">
+            <p>
+              Cuando estudias mas de 6h: <strong>{formatAverage(history.insights.avgWhenOver6h)}</strong>
+            </p>
+            <p>
+              Cuando estudias menos de 3h: <strong>{formatAverage(history.insights.avgWhenUnder3h)}</strong>
+            </p>
+            <p>
+              Mejor relacion estudio/nota:{" "}
+              <strong>{history.insights.bestCourseByEfficiency ?? "-"}</strong>
+            </p>
           </div>
         )}
       </Card>

@@ -62,6 +62,14 @@ const ExamSchema = z.object({
   reminderOffsets: z.array(z.number()),
   courseId: z.string().nullable().optional(),
   course: CourseRefSchema.nullable().optional(),
+  obtainedGrade: z.number().nullable().optional(),
+  studyHoursLogged: z.number().nullable().optional(),
+  feelingScore: z.number().nullable().optional(),
+  retroNotes: z.string().nullable().optional(),
+  retroCompletedAt: z.string().nullable().optional(),
+  retroDismissed: z.boolean().optional(),
+  retroDismissedAt: z.string().nullable().optional(),
+  suggestedStudyHours: z.number().optional(),
 });
 
 export const DashboardSummarySchema = z.object({
@@ -112,6 +120,12 @@ export const SemesterHistoryResponseSchema = z.object({
       cumulativeGpa: z.number().nullable(),
     }),
   ),
+  insights: z.object({
+    samples: z.number(),
+    avgWhenOver6h: z.number().nullable(),
+    avgWhenUnder3h: z.number().nullable(),
+    bestCourseByEfficiency: z.string().nullable(),
+  }),
 });
 
 export const StudyWeekSummarySchema = z.object({

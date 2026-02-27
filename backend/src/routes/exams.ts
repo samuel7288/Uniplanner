@@ -6,6 +6,11 @@ import { prisma } from "../lib/prisma";
 import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
+import {
+  getExamRetroContext,
+  readExamRetrospectivesByIds,
+  saveExamRetrospective,
+} from "../services/examRetrospectiveService";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
@@ -43,6 +48,39 @@ const updateExamSchema = requestSchema({
   body: examSchema.partial(),
   params: z.object({ id: z.string().min(1) }),
 });
+
+const retroExamSchema = requestSchema({
+  body: z.object({
+    obtainedGrade: z.number().min(0).max(10).optional().nullable(),
+    studyHoursLogged: z.number().min(0).max(200).optional().nullable(),
+    feelingScore: z.number().int().min(1).max(4).optional().nullable(),
+    retroNotes: z.string().max(2000).optional().nullable(),
+    skip: z.boolean().optional(),
+  }),
+  params: z.object({ id: z.string().min(1) }),
+});
+
+type RetroPayload = z.infer<typeof retroExamSchema>["body"];
+
+function emptyRetro() {
+  return {
+    obtainedGrade: null,
+    studyHoursLogged: null,
+    feelingScore: null,
+    retroNotes: null,
+    retroCompletedAt: null,
+    retroDismissed: false,
+    retroDismissedAt: null,
+  };
+}
+
+async function attachRetroData<T extends { id: string }>(items: T[]) {
+  const retroById = await readExamRetrospectivesByIds(items.map((item) => item.id));
+  return items.map((item) => ({
+    ...item,
+    ...(retroById.get(item.id) ?? emptyRetro()),
+  }));
+}
 
 router.use(requireAuth);
 
@@ -101,10 +139,11 @@ router.get(
       }),
     ]);
 
+    const examsWithRetro = await attachRetroData(exams);
     const totalPages = Math.ceil(total / normalizedLimit);
 
     res.json({
-      items: exams,
+      items: examsWithRetro,
       pagination: {
         page: normalizedPage,
         limit: normalizedLimit,
@@ -148,27 +187,24 @@ router.post(
       },
     });
 
-    res.status(201).json(exam);
+    const [examWithRetro] = await attachRetroData([exam]);
+    res.status(201).json(examWithRetro);
+  }),
+);
+
+router.get(
+  "/:id/retro-context",
+  asyncHandler(async (req, res) => {
+    const context = await getExamRetroContext(req.user!.userId, req.params.id);
+    res.json(context);
   }),
 );
 
 router.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const exam = await prisma.exam.findFirst({
-      where: {
-        id: req.params.id,
-        userId: req.user!.userId,
-      },
-      include: { course: true },
-    });
-
-    if (!exam) {
-      res.status(404).json({ message: "Exam not found" });
-      return;
-    }
-
-    res.json(exam);
+    const context = await getExamRetroContext(req.user!.userId, req.params.id);
+    res.json(context);
   }),
 );
 
@@ -204,7 +240,18 @@ router.put(
       include: { course: true },
     });
 
-    res.json(updated);
+    const [updatedWithRetro] = await attachRetroData([updated]);
+    res.json(updatedWithRetro);
+  }),
+);
+
+router.patch(
+  "/:id/retro",
+  validate(retroExamSchema),
+  asyncHandler(async (req, res) => {
+    const payload = req.body as RetroPayload;
+    const saved = await saveExamRetrospective(req.user!.userId, req.params.id, payload);
+    res.json(saved);
   }),
 );
 

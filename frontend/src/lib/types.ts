@@ -59,6 +59,14 @@ export type Exam = {
   reminderOffsets: number[];
   courseId?: string | null;
   course?: Pick<Course, "id" | "name" | "code" | "color"> | null;
+  obtainedGrade?: number | null;
+  studyHoursLogged?: number | null;
+  feelingScore?: number | null;
+  retroNotes?: string | null;
+  retroCompletedAt?: string | null;
+  retroDismissed?: boolean;
+  retroDismissedAt?: string | null;
+  suggestedStudyHours?: number;
 };
 
 export type Milestone = {
@@ -153,6 +161,12 @@ export type SemesterHistoryResponse = {
     gpa: number | null;
     cumulativeGpa: number | null;
   }>;
+  insights: {
+    samples: number;
+    avgWhenOver6h: number | null;
+    avgWhenUnder3h: number | null;
+    bestCourseByEfficiency: string | null;
+  };
 };
 
 export type StudySession = {

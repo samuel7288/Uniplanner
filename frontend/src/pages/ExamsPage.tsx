@@ -20,6 +20,7 @@ import {
   TextInput,
 } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ExamRetroModal } from "../components/ExamRetroModal";
 import { extractDayKeyFromInput, useConflictDetection } from "../hooks/useConflictDetection";
 import { api, getErrorMessage } from "../lib/api";
 import type {
@@ -161,6 +162,8 @@ export function ExamsPage() {
     id: null,
     title: "",
   });
+  const [retroModalOpen, setRetroModalOpen] = useState(false);
+  const [retroExam, setRetroExam] = useState<Exam | null>(null);
   const formAnchorRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -314,6 +317,23 @@ export function ExamsPage() {
       weight: exam.weight?.toString() || "",
       reminderOffsets: exam.reminderOffsets.join(","),
     });
+  }
+
+  function shouldAskRetrospective(exam: Exam): boolean {
+    const examTime = new Date(exam.dateTime).getTime();
+    if (!Number.isFinite(examTime) || examTime > Date.now()) return false;
+    if (exam.retroDismissed) return false;
+    return !exam.retroCompletedAt;
+  }
+
+  async function openRetrospective(examId: string) {
+    try {
+      const response = await api.get<Exam>(`/exams/${examId}/retro-context`);
+      setRetroExam(response.data);
+      setRetroModalOpen(true);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   }
 
   async function remove(id: string) {
@@ -609,6 +629,16 @@ export function ExamsPage() {
                         Recordatorios: {exam.reminderOffsets.join(", ")} min
                       </p>
                       <div className="mt-3 flex gap-2">
+                        {shouldAskRetrospective(exam) && (
+                          <Button
+                            type="button"
+                            variant="subtle"
+                            size="sm"
+                            onClick={() => void openRetrospective(exam.id)}
+                          >
+                            Retrospectiva
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -676,6 +706,16 @@ export function ExamsPage() {
                         </p>
                       )}
                       <div className="mt-auto flex gap-1.5 pt-3">
+                        {shouldAskRetrospective(exam) && (
+                          <Button
+                            type="button"
+                            variant="subtle"
+                            size="sm"
+                            onClick={() => void openRetrospective(exam.id)}
+                          >
+                            Retrospectiva
+                          </Button>
+                        )}
                         <Button
                           type="button"
                           variant="ghost"
@@ -757,6 +797,16 @@ export function ExamsPage() {
                             {typeof exam.weight === "number" && (
                               <Badge tone="default">{exam.weight}%</Badge>
                             )}
+                            {shouldAskRetrospective(exam) && (
+                              <Button
+                                type="button"
+                                variant="subtle"
+                                size="sm"
+                                onClick={() => void openRetrospective(exam.id)}
+                              >
+                                Retrospectiva
+                              </Button>
+                            )}
                           </div>
                         </li>
                       ))}
@@ -805,6 +855,15 @@ export function ExamsPage() {
           setConfirmDelete({ open: false, id: null, title: "" });
         }}
         onCancel={() => setConfirmDelete({ open: false, id: null, title: "" })}
+      />
+      <ExamRetroModal
+        open={retroModalOpen}
+        exam={retroExam}
+        onClose={() => {
+          setRetroModalOpen(false);
+          setRetroExam(null);
+        }}
+        onSaved={loadExams}
       />
     </div>
   );

@@ -1,9 +1,10 @@
-import { addDays, addMinutes, differenceInCalendarDays, endOfWeek, startOfWeek, subMinutes } from "date-fns";
+import { addDays, addMinutes, differenceInCalendarDays, endOfDay, endOfWeek, startOfDay, startOfWeek, subMinutes } from "date-fns";
 import cron from "node-cron";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
 import { isRedisReady, notificationQueue, type NotificationJobData } from "./queue";
 import { listStudyGoalsInRange } from "../services/studyGoalsService";
+import { listExamsNeedingRetrospectivePrompt } from "../services/examRetrospectiveService";
 import { listStudyReminderPreferences } from "../services/studyReminderPreferencesService";
 
 // ── Throttle repeated dependency-unavailable warnings to once every 5 minutes ──
@@ -372,6 +373,28 @@ async function processSmartStudyReminders(now: Date): Promise<void> {
   }
 }
 
+async function processExamRetrospectivePrompts(now: Date): Promise<void> {
+  if (!(now.getHours() === 9 && now.getMinutes() === 0)) return;
+
+  const from = startOfDay(addDays(now, -2));
+  const to = endOfDay(addDays(now, -1));
+  const exams = await listExamsNeedingRetrospectivePrompt(from, to);
+
+  for (const exam of exams) {
+    const courseLabel = exam.courseName ? ` de ${exam.courseName}` : "";
+    await enqueue({
+      eventKey: `exam-retro:${exam.id}`,
+      userId: exam.userId,
+      title: `Como te fue en ${exam.title}${courseLabel}?`,
+      message: "Registra tu nota y retrospectiva para mantener tu historial academico al dia.",
+      type: "SYSTEM",
+      scheduledFor: now.toISOString(),
+      userEmail: exam.userEmail,
+      notifyEmail: exam.notifyEmail,
+    });
+  }
+}
+
 export function startScheduler(): void {
   cron.schedule("* * * * *", async () => {
     const now = new Date();
@@ -398,6 +421,7 @@ export function startScheduler(): void {
       processMilestoneReminders(now),
       processStudyGoalNotifications(now),
       processSmartStudyReminders(now),
+      processExamRetrospectivePrompts(now),
     ]);
 
     const labels = [
@@ -406,6 +430,7 @@ export function startScheduler(): void {
       "MilestoneReminders",
       "StudyGoalNotifications",
       "SmartStudyReminders",
+      "ExamRetrospectivePrompts",
     ];
     results.forEach((result, i) => {
       if (result.status === "rejected") {

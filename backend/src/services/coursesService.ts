@@ -372,6 +372,90 @@ type SemesterHistoryBucket = {
   courses: SemesterHistoryCourse[];
 };
 
+type RetrospectiveInsightSummary = {
+  samples: number;
+  avgWhenOver6h: number | null;
+  avgWhenUnder3h: number | null;
+  bestCourseByEfficiency: string | null;
+};
+
+async function buildRetrospectiveInsights(userId: string): Promise<RetrospectiveInsightSummary> {
+  try {
+    const rows = await prisma.$queryRaw<
+      Array<{
+        courseId: string | null;
+        courseName: string | null;
+        obtainedGrade: number;
+        studyHoursLogged: number;
+      }>
+    >`
+      SELECT
+        e."courseId",
+        c."name" AS "courseName",
+        e."obtainedGrade",
+        e."studyHoursLogged"
+      FROM "Exam" e
+      LEFT JOIN "Course" c ON c."id" = e."courseId"
+      WHERE e."userId" = ${userId}
+        AND e."obtainedGrade" IS NOT NULL
+        AND e."studyHoursLogged" IS NOT NULL
+    `;
+
+    if (rows.length === 0) {
+      return {
+        samples: 0,
+        avgWhenOver6h: null,
+        avgWhenUnder3h: null,
+        bestCourseByEfficiency: null,
+      };
+    }
+
+    const over6 = rows.filter((row) => row.studyHoursLogged > 6);
+    const under3 = rows.filter((row) => row.studyHoursLogged < 3);
+
+    const efficiencyByCourse = new Map<string, { totalRatio: number; count: number }>();
+    for (const row of rows) {
+      if (!row.courseName || row.studyHoursLogged <= 0) continue;
+      const ratio = row.obtainedGrade / row.studyHoursLogged;
+      const current = efficiencyByCourse.get(row.courseName) ?? { totalRatio: 0, count: 0 };
+      current.totalRatio += ratio;
+      current.count += 1;
+      efficiencyByCourse.set(row.courseName, current);
+    }
+
+    let bestCourseByEfficiency: string | null = null;
+    let bestRatio = -1;
+    for (const [courseName, aggregate] of efficiencyByCourse.entries()) {
+      if (aggregate.count === 0) continue;
+      const averageRatio = aggregate.totalRatio / aggregate.count;
+      if (averageRatio > bestRatio) {
+        bestRatio = averageRatio;
+        bestCourseByEfficiency = courseName;
+      }
+    }
+
+    return {
+      samples: rows.length,
+      avgWhenOver6h:
+        over6.length > 0
+          ? Number((over6.reduce((sum, row) => sum + row.obtainedGrade, 0) / over6.length).toFixed(2))
+          : null,
+      avgWhenUnder3h:
+        under3.length > 0
+          ? Number((under3.reduce((sum, row) => sum + row.obtainedGrade, 0) / under3.length).toFixed(2))
+          : null,
+      bestCourseByEfficiency,
+    };
+  } catch {
+    return {
+      samples: 0,
+      avgWhenOver6h: null,
+      avgWhenUnder3h: null,
+      bestCourseByEfficiency: null,
+    };
+  }
+}
+
 export async function getArchivedCoursesHistory(userId: string) {
   const archivedCourses = await prisma.course.findMany({
     where: {
@@ -465,8 +549,11 @@ export async function getArchivedCoursesHistory(userId: string) {
     };
   });
 
+  const insights = await buildRetrospectiveInsights(userId);
+
   return {
     semesters,
     cumulative,
+    insights,
   };
 }
