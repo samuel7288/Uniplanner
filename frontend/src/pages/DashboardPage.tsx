@@ -11,10 +11,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api, getErrorMessage } from "../lib/api";
-import { DashboardSummarySchema } from "../lib/schemas";
+import { DashboardSummarySchema, StudyWeekSummarySchema } from "../lib/schemas";
 import { useWeeklyLoad } from "../hooks/useWeeklyLoad";
 import { WeeklyLoadChart } from "./dashboard/WeeklyLoadChart";
-import type { Assignment, Course, DashboardSummary, WeeklyPlanResponse } from "../lib/types";
+import { WeeklyStudyChart } from "./dashboard/WeeklyStudyChart";
+import type { Assignment, Course, DashboardSummary, StudyWeekSummary, WeeklyPlanResponse } from "../lib/types";
 import { Alert, Badge, Button, Card, DashboardSkeleton, EmptyState, Field, PageTitle, SelectInput, StatCard } from "../components/UI";
 
 const initialSummary: DashboardSummary = {
@@ -71,16 +72,88 @@ export function DashboardPage() {
 
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const [pomodoroStartedAt, setPomodoroStartedAt] = useState<Date | null>(null);
+  const [pomodoroCourseId, setPomodoroCourseId] = useState("");
+  const [studyWeekSummary, setStudyWeekSummary] = useState<StudyWeekSummary | null>(null);
+  const [studyWeekLoading, setStudyWeekLoading] = useState(true);
+  const [studyWeekError, setStudyWeekError] = useState("");
   const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
   const { data: weeklyLoadData, loading: weeklyLoadLoading, error: weeklyLoadError } = useWeeklyLoad(12);
+
+  async function loadStudyWeekSummary() {
+    try {
+      const response = await api.get<StudyWeekSummary>("/study-sessions", {
+        params: { week: "current" },
+      });
+      setStudyWeekSummary(StudyWeekSummarySchema.parse(response.data));
+      setStudyWeekError("");
+    } catch (err) {
+      setStudyWeekError(getErrorMessage(err));
+    } finally {
+      setStudyWeekLoading(false);
+    }
+  }
+
+  async function persistCompletedStudySession(endTime: Date) {
+    if (!pomodoroStartedAt || !pomodoroCourseId) return;
+
+    const duration = Math.max(
+      1,
+      Math.round((endTime.getTime() - pomodoroStartedAt.getTime()) / (1000 * 60)),
+    );
+
+    try {
+      await api.post("/study-sessions", {
+        courseId: pomodoroCourseId,
+        startTime: pomodoroStartedAt.toISOString(),
+        endTime: endTime.toISOString(),
+        duration,
+      });
+      await loadStudyWeekSummary();
+    } catch (err) {
+      setStudyWeekError(getErrorMessage(err));
+    } finally {
+      setPomodoroStartedAt(null);
+      setPomodoroCourseId("");
+    }
+  }
+
+  function togglePomodoro() {
+    if (pomodoroRunning) {
+      setPomodoroRunning(false);
+      return;
+    }
+
+    if (!pomodoroStartedAt) {
+      if (!focusCourseId) {
+        setError("Selecciona una materia antes de iniciar el Pomodoro.");
+        return;
+      }
+
+      setPomodoroStartedAt(new Date());
+      setPomodoroCourseId(focusCourseId);
+    }
+
+    setError("");
+    setPomodoroRunning(true);
+  }
+
+  function resetPomodoro() {
+    setPomodoroRunning(false);
+    setPomodoroSeconds(25 * 60);
+    setPomodoroStartedAt(null);
+    setPomodoroCourseId("");
+  }
 
   useEffect(() => {
     if (!pomodoroRunning) return;
     const id = window.setInterval(() => {
       setPomodoroSeconds((prev) => {
         if (prev <= 1) {
+          const completedAt = new Date();
           window.clearInterval(id);
           setPomodoroRunning(false);
+          void persistCompletedStudySession(completedAt);
           return 0;
         }
         return prev - 1;
@@ -88,7 +161,7 @@ export function DashboardPage() {
     }, 1000);
 
     return () => window.clearInterval(id);
-  }, [pomodoroRunning]);
+  }, [pomodoroCourseId, pomodoroRunning, pomodoroStartedAt]);
 
   useEffect(() => {
     if (location.pathname !== "/dashboard" || isFocusMode) return;
@@ -154,6 +227,11 @@ export function DashboardPage() {
     }
 
     void load();
+  }, []);
+
+  useEffect(() => {
+    setStudyWeekLoading(true);
+    void loadStudyWeekSummary();
   }, []);
 
   useEffect(() => {
@@ -258,17 +336,10 @@ export function DashboardPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.14em] text-ink-400">Pomodoro</p>
               <p className="kpi-value mt-4 text-7xl font-semibold tracking-tight text-brand-300">{pomodoroDisplay}</p>
               <div className="mt-4 flex flex-wrap justify-center gap-2">
-                <Button type="button" onClick={() => setPomodoroRunning((prev) => !prev)}>
+                <Button type="button" onClick={togglePomodoro}>
                   {pomodoroRunning ? "Pausar" : "Iniciar"}
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setPomodoroRunning(false);
-                    setPomodoroSeconds(25 * 60);
-                  }}
-                >
+                <Button type="button" variant="ghost" onClick={resetPomodoro}>
                   Reiniciar
                 </Button>
               </div>
@@ -280,7 +351,7 @@ export function DashboardPage() {
                 <SelectInput
                   value={focusCourseId}
                   onChange={(event) => setFocusCourseId(event.target.value)}
-                  disabled={courses.length === 0}
+                  disabled={courses.length === 0 || pomodoroStartedAt !== null}
                 >
                   {courses.length === 0 && <option value="">Sin materias</option>}
                   {courses.map((course) => (
@@ -373,6 +444,12 @@ export function DashboardPage() {
             error={weeklyLoadError}
           />
 
+          <WeeklyStudyChart
+            data={studyWeekSummary}
+            loading={studyWeekLoading}
+            error={studyWeekError}
+          />
+
           <div className="grid gap-4 xl:grid-cols-[1.2fr,0.8fr]">
             <Card className="space-y-4">
               <div className="flex items-center justify-between">
@@ -436,18 +513,25 @@ export function DashboardPage() {
               </div>
               <p className="text-sm text-ink-600 dark:text-ink-400">Timer Pomodoro para ejecutar bloques de trabajo sin friccion.</p>
               <p className="kpi-value text-5xl font-semibold tracking-tight text-brand-700 dark:text-brand-400">{pomodoroDisplay}</p>
+              <Field label="Materia para esta sesion">
+                <SelectInput
+                  value={focusCourseId}
+                  onChange={(event) => setFocusCourseId(event.target.value)}
+                  disabled={courses.length === 0 || pomodoroStartedAt !== null}
+                >
+                  {courses.length === 0 && <option value="">Sin materias</option>}
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </SelectInput>
+              </Field>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" onClick={() => setPomodoroRunning((prev) => !prev)}>
+                <Button type="button" onClick={togglePomodoro}>
                   {pomodoroRunning ? "Pausar" : "Iniciar"}
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setPomodoroRunning(false);
-                    setPomodoroSeconds(25 * 60);
-                  }}
-                >
+                <Button type="button" variant="ghost" onClick={resetPomodoro}>
                   Reiniciar
                 </Button>
                 <Button type="button" variant="subtle" onClick={openFocusMode}>

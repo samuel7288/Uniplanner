@@ -112,3 +112,34 @@ export const SemesterHistoryResponseSchema = z.object({
     }),
   ),
 });
+
+export const StudyWeekSummarySchema = z.object({
+  weekStart: z.string(),
+  weekEnd: z.string(),
+  totalMinutes: z.number(),
+  byCourse: z.array(
+    z.object({
+      courseId: z.string(),
+      courseName: z.string(),
+      code: z.string(),
+      color: z.string().nullable(),
+      totalMinutes: z.number(),
+      sessionCount: z.number(),
+    }),
+  ),
+  sessions: z.array(
+    z.object({
+      id: z.string(),
+      courseId: z.string(),
+      duration: z.number(),
+      startTime: z.string(),
+      endTime: z.string(),
+      course: z.object({
+        id: z.string(),
+        name: z.string(),
+        code: z.string(),
+        color: z.string().nullable().optional(),
+      }),
+    }),
+  ),
+});

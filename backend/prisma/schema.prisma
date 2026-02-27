@@ -81,6 +81,7 @@ model User {
   refreshTokens RefreshToken[]
   passwordResets PasswordResetToken[]
   tags          Tag[]
+  studySessions StudySession[]
 }
 
 model RefreshToken {
@@ -129,6 +130,7 @@ model Course {
   exams        Exam[]
   projects     Project[]
   grades       Grade[]
+  studySessions StudySession[]
 
   @@unique([userId, code])
   @@index([userId])
@@ -290,6 +292,23 @@ model Grade {
 
   @@index([userId])
   @@index([courseId])
+}
+
+model StudySession {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  startTime DateTime
+  endTime   DateTime
+  duration  Int
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([userId, startTime])
 }
 
 model Notification {

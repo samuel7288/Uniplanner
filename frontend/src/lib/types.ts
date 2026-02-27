@@ -154,6 +154,30 @@ export type SemesterHistoryResponse = {
   }>;
 };
 
+export type StudySession = {
+  id: string;
+  courseId: string;
+  duration: number;
+  startTime: string;
+  endTime: string;
+  course: Pick<Course, "id" | "name" | "code" | "color">;
+};
+
+export type StudyWeekSummary = {
+  weekStart: string;
+  weekEnd: string;
+  totalMinutes: number;
+  byCourse: Array<{
+    courseId: string;
+    courseName: string;
+    code: string;
+    color: string | null;
+    totalMinutes: number;
+    sessionCount: number;
+  }>;
+  sessions: StudySession[];
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;
