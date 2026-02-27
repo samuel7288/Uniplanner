@@ -258,10 +258,15 @@ export function ExamsPage() {
                 variant="subtle"
                 size="sm"
                 onClick={() => {
-                  void api.delete(`/exams/${createdId}`).then(() => {
-                    void loadExams();
-                    toast.dismiss(t.id);
-                  });
+                  void api
+                    .delete(`/exams/${createdId}`)
+                    .then(() => {
+                      void loadExams();
+                      toast.dismiss(t.id);
+                    })
+                    .catch((err) => {
+                      toast.error(getErrorMessage(err));
+                    });
                 }}
               >
                 Deshacer
@@ -335,6 +340,9 @@ export function ExamsPage() {
                     .then(() => {
                       void loadExams();
                       toast.dismiss(t.id);
+                    })
+                    .catch((err) => {
+                      toast.error(getErrorMessage(err));
                     });
                 }}
               >

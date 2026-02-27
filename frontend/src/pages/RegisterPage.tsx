@@ -14,7 +14,7 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(8, "Debe tener al menos 8 caracteres")
-    .regex(/\d/, "Debe incluir al menos un numero"),
+    .max(72, "No puede exceder 72 caracteres"),
   career: z.string().optional(),
   university: z.string().optional(),
   timezone: z.string().optional(),

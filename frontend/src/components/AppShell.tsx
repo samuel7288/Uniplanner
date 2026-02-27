@@ -14,12 +14,13 @@ import {
 import clsx from "clsx";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { KeyboardEvent as ReactKeyboardEvent, PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { useDebounce } from "../hooks/useDebounce";
-import { api } from "../lib/api";
+import { api, getErrorMessage } from "../lib/api";
 import type { DashboardSummary, SearchItem, SearchResponse } from "../lib/types";
 import { BottomNav } from "./BottomNav";
 import { BreadcrumbBar } from "./BreadcrumbBar";
@@ -88,8 +89,8 @@ export function AppShell({ children }: PropsWithChildren) {
   const paletteInputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(query);
 
-  const { user, logout } = useAuth();
-  const { isDark, toggleDark, setDarkMode, preset, setPreset } = useTheme();
+  const { user, logout, refreshProfile } = useAuth();
+  const { isDark, setDarkMode, preset, setPreset } = useTheme();
   const { canSend, notify, supported: browserPushSupported, permission: browserPushPermission, setEnabled: setBrowserPushEnabled } = useBrowserNotifications();
   const location = useLocation();
   const navigate = useNavigate();
@@ -133,14 +134,13 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!user) return;
-    if (typeof user.darkModePref === "boolean" && user.darkModePref !== isDark) {
+    if (typeof user?.darkModePref === "boolean") {
       setDarkMode(user.darkModePref);
     }
-    if (user.themePreset && user.themePreset !== preset) {
+    if (user?.themePreset) {
       setPreset(user.themePreset);
     }
-  }, [isDark, preset, setDarkMode, setPreset, user]);
+  }, [setDarkMode, setPreset, user?.darkModePref, user?.themePreset]);
 
   useEffect(() => {
     if (!user || !browserPushSupported) return;
@@ -342,6 +342,24 @@ export function AppShell({ children }: PropsWithChildren) {
     localStorage.setItem(ONBOARDING_DONE_KEY, "true");
   }
 
+  async function handleHeaderThemeToggle(): Promise<void> {
+    const previousDarkMode = isDark;
+    const nextDarkMode = !previousDarkMode;
+
+    setDarkMode(nextDarkMode);
+
+    try {
+      await api.put("/settings/preferences", {
+        darkModePref: nextDarkMode,
+        themePreset: preset,
+      });
+      await refreshProfile();
+    } catch (error) {
+      setDarkMode(previousDarkMode);
+      toast.error(getErrorMessage(error));
+    }
+  }
+
   return (
     <div className="relative min-h-screen lg:flex">
       {/* Skip to content link */}
@@ -463,7 +481,9 @@ export function AppShell({ children }: PropsWithChildren) {
               {/* Dark mode toggle */}
               <button
                 type="button"
-                onClick={toggleDark}
+                onClick={() => {
+                  void handleHeaderThemeToggle();
+                }}
                 className="rounded-xl border border-ink-200 bg-white p-2 text-ink-700 transition hover:bg-ink-50 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300 dark:hover:bg-ink-800"
                 aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
               >
