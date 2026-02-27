@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { MoonIcon, SunIcon } from "@heroicons/react/24/outline";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme, type ThemePreset } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
@@ -21,12 +21,15 @@ const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }
 export function SettingsPage() {
   const { user, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDark, toggleDark, preset, setPreset, setDarkMode } = useTheme();
   const {
     supported: browserNotifSupported,
+    pushSupported,
     enabled: browserNotifEnabled,
     permission: browserNotifPermission,
     enableWithPrompt,
+    disable: disableBrowserPush,
     setEnabled: setBrowserNotifEnabled,
     notify,
   } = useBrowserNotifications();
@@ -46,6 +49,88 @@ export function SettingsPage() {
     enabled: true,
     minDaysWithoutStudy: 3,
   });
+  const [googleCalendarStatus, setGoogleCalendarStatus] = useState({
+    configured: false,
+    connected: false,
+    lastSyncAt: null as string | null,
+    calendarId: null as string | null,
+  });
+  const [googleCalendarLoading, setGoogleCalendarLoading] = useState(true);
+  const [googleCalendarSyncing, setGoogleCalendarSyncing] = useState(false);
+
+  const iosPushNeedsStandalone = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    if (!isIOS) return false;
+    const standalone =
+      window.matchMedia?.("(display-mode: standalone)")?.matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    return !standalone;
+  }, []);
+
+  async function loadGoogleCalendarStatus() {
+    setGoogleCalendarLoading(true);
+    try {
+      const response = await api.get<{
+        configured: boolean;
+        connected: boolean;
+        lastSyncAt: string | null;
+        calendarId: string | null;
+      }>("/google-calendar/status");
+      setGoogleCalendarStatus(response.data);
+    } catch {
+      setGoogleCalendarStatus({
+        configured: false,
+        connected: false,
+        lastSyncAt: null,
+        calendarId: null,
+      });
+    } finally {
+      setGoogleCalendarLoading(false);
+    }
+  }
+
+  async function connectGoogleCalendar() {
+    setError("");
+    try {
+      const response = await api.get<{ url: string }>("/google-calendar/connect-url");
+      window.location.assign(response.data.url);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  async function syncGoogleCalendar() {
+    setError("");
+    setMessage("");
+    setGoogleCalendarSyncing(true);
+    try {
+      const response = await api.post<{ synced: number; inserted: number; updated: number }>("/google-calendar/sync");
+      setMessage(
+        `Google Calendar sincronizado: ${response.data.synced} eventos (${response.data.inserted} nuevos, ${response.data.updated} actualizados).`,
+      );
+      await loadGoogleCalendarStatus();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setGoogleCalendarSyncing(false);
+    }
+  }
+
+  async function disconnectGoogleCalendar() {
+    const confirmed = window.confirm("Desconectar Google Calendar y revocar sincronizacion?");
+    if (!confirmed) return;
+    setError("");
+    setMessage("");
+    try {
+      await api.delete("/google-calendar/disconnect");
+      setMessage("Google Calendar desconectado.");
+      await loadGoogleCalendarStatus();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -94,6 +179,27 @@ export function SettingsPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    void loadGoogleCalendarStatus();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const status = params.get("googleCalendar");
+    if (!status) return;
+
+    if (status === "connected") {
+      setMessage("Google Calendar conectado correctamente.");
+    } else if (status === "cancelled") {
+      setMessage("Conexion de Google Calendar cancelada.");
+    } else {
+      setError("No se pudo completar la conexion con Google Calendar.");
+    }
+
+    void loadGoogleCalendarStatus();
+    navigate("/settings", { replace: true });
+  }, [location.search, navigate]);
 
   useEffect(() => {
     let active = true;
@@ -262,26 +368,36 @@ export function SettingsPage() {
             <p className="text-sm text-ink-600 dark:text-ink-400">
               Recibe alertas de tareas y examenes cercanos aunque no tengas abierta la vista de notificaciones.
             </p>
+            {!pushSupported && (
+              <Alert
+                tone="warning"
+                message="Push real no disponible: este navegador solo mostrara alertas cuando la app este abierta."
+              />
+            )}
+            {iosPushNeedsStandalone && (
+              <Alert
+                tone="info"
+                message="En iOS, instala la app en pantalla de inicio (modo standalone) para recibir push en segundo plano."
+              />
+            )}
             <p className="text-xs text-ink-500 dark:text-ink-400">
               Permiso actual: <span className="font-semibold">{browserNotifPermission}</span>
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
-                onClick={() => {
-                  void enableWithPrompt();
-                }}
+                onClick={() => void enableWithPrompt()}
                 disabled={browserNotifPermission === "granted" && browserNotifEnabled}
               >
-                Activar navegador
+                Activar push
               </Button>
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setBrowserNotifEnabled(!browserNotifEnabled)}
-                disabled={browserNotifPermission !== "granted"}
+                onClick={() => void disableBrowserPush()}
+                disabled={!browserNotifEnabled}
               >
-                {browserNotifEnabled ? "Desactivar alertas" : "Activar alertas"}
+                Desactivar push
               </Button>
               <Button
                 type="button"
@@ -316,6 +432,52 @@ export function SettingsPage() {
             Ver historial
           </Button>
         </div>
+      </Card>
+
+      <Card className="max-w-xl space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Google Calendar
+        </h2>
+        {googleCalendarLoading ? (
+          <p className="text-sm text-ink-600 dark:text-ink-400">Cargando estado de integracion...</p>
+        ) : !googleCalendarStatus.configured ? (
+          <Alert
+            tone="warning"
+            message="Integracion no configurada en servidor. Define GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y GOOGLE_REDIRECT_URI."
+          />
+        ) : (
+          <>
+            <p className="text-sm text-ink-600 dark:text-ink-400">
+              Exporta tareas y examenes de UniPlanner a tu Google Calendar.
+            </p>
+            <p className="text-xs text-ink-500 dark:text-ink-400">
+              Estado: <strong>{googleCalendarStatus.connected ? "Conectado" : "No conectado"}</strong>
+              {googleCalendarStatus.lastSyncAt
+                ? ` • Ultima sync: ${new Date(googleCalendarStatus.lastSyncAt).toLocaleString()}`
+                : ""}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {!googleCalendarStatus.connected ? (
+                <Button type="button" onClick={() => void connectGoogleCalendar()}>
+                  Conectar Google Calendar
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    onClick={() => void syncGoogleCalendar()}
+                    disabled={googleCalendarSyncing}
+                  >
+                    {googleCalendarSyncing ? "Sincronizando..." : "Sincronizar ahora"}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => void disconnectGoogleCalendar()}>
+                    Desconectar
+                  </Button>
+                </>
+              )}
+            </div>
+          </>
+        )}
       </Card>
 
       <Card className="max-w-xl space-y-4">

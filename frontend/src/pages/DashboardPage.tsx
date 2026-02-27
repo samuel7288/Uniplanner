@@ -44,6 +44,7 @@ const initialSummary: DashboardSummary = {
     upcomingExamsCount: 0,
     unreadNotifications: 0,
     riskCoursesCount: 0,
+    globalGpa: null,
   },
   upcomingExams: [],
   riskCourses: [],
@@ -726,7 +727,7 @@ export function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <StatCard
               tone="brand"
               label="Tareas pendientes"
@@ -758,6 +759,20 @@ export function DashboardPage() {
               trend={summary.kpis.riskCoursesCount > 0 ? "Accion recomendada hoy" : "Rendimiento estable"}
               trendData={mockTrend(summary.kpis.riskCoursesCount)}
               className="min-h-[10.5rem] animate-stagger-in stagger-4"
+            />
+            <StatCard
+              tone="success"
+              label="GPA global"
+              value={summary.kpis.globalGpa !== null ? summary.kpis.globalGpa.toFixed(2) : "-"}
+              trend={
+                summary.kpis.globalGpa === null
+                  ? "Sin materias calificadas"
+                  : summary.kpis.globalGpa >= 7
+                    ? "Rendimiento solido"
+                    : "Conviene reforzar"
+              }
+              trendData={mockTrend(summary.kpis.globalGpa ?? 0)}
+              className="min-h-[10.5rem] animate-stagger-in stagger-5"
             />
           </div>
 

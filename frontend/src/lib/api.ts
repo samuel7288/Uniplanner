@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import toast from "react-hot-toast";
+import type { GradeCategory } from "./types";
 
 // In dev the Vite proxy forwards /api → backend (same origin, cookies work).
 // In production set VITE_API_BASE_URL to the full backend URL if not using a reverse proxy.
@@ -214,3 +215,28 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   return fallback;
 }
+
+export type GradeCategoryCreatePayload = {
+  name: string;
+  weight: number;
+};
+
+export type GradeCategoryUpdatePayload = Partial<GradeCategoryCreatePayload>;
+
+export const gradeCategoriesApi = {
+  async list(courseId: string): Promise<GradeCategory[]> {
+    const response = await api.get<GradeCategory[]>(`/courses/${courseId}/grade-categories`);
+    return response.data;
+  },
+  async create(courseId: string, payload: GradeCategoryCreatePayload): Promise<GradeCategory> {
+    const response = await api.post<GradeCategory>(`/courses/${courseId}/grade-categories`, payload);
+    return response.data;
+  },
+  async update(id: string, payload: GradeCategoryUpdatePayload): Promise<GradeCategory> {
+    const response = await api.put<GradeCategory>(`/grade-categories/${id}`, payload);
+    return response.data;
+  },
+  async remove(id: string): Promise<void> {
+    await api.delete(`/grade-categories/${id}`);
+  },
+};

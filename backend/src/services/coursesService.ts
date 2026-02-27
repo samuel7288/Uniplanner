@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { calculateCourseProjection } from "../utils/grading";
+import { ensureGradeCategoriesInfrastructure } from "./gradeCategoriesService";
 import type {
   AddSessionBody,
   ArchiveSemesterBody,
@@ -15,6 +16,60 @@ function createHttpError(status: number, message: string): HttpError {
   const error = new Error(message) as HttpError;
   error.status = status;
   return error;
+}
+
+type CourseGradeRow = {
+  id: string;
+  name: string;
+  score: number;
+  maxScore: number;
+  weight: number;
+  categoryId: string | null;
+};
+
+type CourseGradeCategoryRow = {
+  id: string;
+  name: string;
+  weight: number;
+};
+
+async function listCourseGradesWithCategory(
+  userId: string,
+  courseId: string,
+): Promise<CourseGradeRow[]> {
+  await ensureGradeCategoriesInfrastructure();
+
+  return prisma.$queryRaw<CourseGradeRow[]>`
+    SELECT
+      "id",
+      "name",
+      "score",
+      "maxScore",
+      "weight",
+      "categoryId"
+    FROM "Grade"
+    WHERE "userId" = ${userId}
+      AND "courseId" = ${courseId}
+    ORDER BY "createdAt" ASC
+  `;
+}
+
+async function listCourseGradeCategories(
+  userId: string,
+  courseId: string,
+): Promise<CourseGradeCategoryRow[]> {
+  await ensureGradeCategoriesInfrastructure();
+
+  return prisma.$queryRaw<CourseGradeCategoryRow[]>`
+    SELECT
+      "id",
+      "name",
+      "weight"
+    FROM "GradeCategory"
+    WHERE "userId" = ${userId}
+      AND "courseId" = ${courseId}
+    ORDER BY "createdAt" ASC, "name" ASC
+  `;
 }
 
 export async function getWeeklySchedule(userId: string) {
@@ -188,27 +243,69 @@ export async function getGradeProjection(userId: string, courseId: string, targe
       userId,
       archived: false,
     },
-    include: {
-      grades: true,
+    select: {
+      id: true,
+      name: true,
     },
   });
 
   if (!course) throw createHttpError(404, "Course not found");
 
+  const [grades, categories] = await Promise.all([
+    listCourseGradesWithCategory(userId, course.id),
+    listCourseGradeCategories(userId, course.id),
+  ]);
+
   const projection = calculateCourseProjection(
-    course.grades.map((grade) => ({
+    grades.map((grade) => ({
       score: grade.score,
       maxScore: grade.maxScore,
       weight: grade.weight,
+      categoryId: grade.categoryId,
     })),
     target,
+    {
+      categories: categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        weight: category.weight,
+      })),
+    },
   );
+
+  const categoriesBreakdown = categories.map((category) => {
+    const gradesInCategory = grades.filter((grade) => grade.categoryId === category.id);
+    const average =
+      gradesInCategory.length > 0
+        ? Number(
+            (
+              gradesInCategory.reduce((sum, grade) => sum + (grade.score / grade.maxScore) * 10, 0) /
+              gradesInCategory.length
+            ).toFixed(2),
+          )
+        : null;
+
+    return {
+      id: category.id,
+      name: category.name,
+      weight: Number(category.weight.toFixed(2)),
+      average,
+      coveredCount: gradesInCategory.length,
+      grades: gradesInCategory.map((grade) => ({
+        id: grade.id,
+        name: grade.name,
+        score: grade.score,
+        maxScore: grade.maxScore,
+      })),
+    };
+  });
 
   return {
     courseId: course.id,
     courseName: course.name,
     target,
     ...projection,
+    categories: categoriesBreakdown,
   };
 }
 

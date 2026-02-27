@@ -77,6 +77,9 @@ model User {
   exams         Exam[]
   projects      Project[]
   grades        Grade[]
+  gradeCategories GradeCategory[]
+  pushSubscriptions PushSubscription[]
+  googleCalendarSync GoogleCalendarSync?
   notifications Notification[]
   refreshTokens RefreshToken[]
   passwordResets PasswordResetToken[]
@@ -131,6 +134,7 @@ model Course {
   exams        Exam[]
   projects     Project[]
   grades       Grade[]
+  gradeCategories GradeCategory[]
   studySessions StudySession[]
   studyGoals   StudyGoal[]
 
@@ -294,11 +298,31 @@ model Grade {
   score     Float
   maxScore  Float
   weight    Float
+  categoryId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  category GradeCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([categoryId])
+}
+
+model GradeCategory {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  name      String
+  weight    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  grades Grade[]
 
   @@index([userId])
   @@index([courseId])
@@ -356,4 +380,29 @@ model Notification {
   @@index([userId, createdAt])
   @@index([userId, read, createdAt])
   @@index([read])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  endpoint  String   @unique
+  p256dhKey String
+  authKey   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model GoogleCalendarSync {
+  id           Int      @id @default(autoincrement())
+  userId       String   @unique
+  accessToken  String
+  refreshToken String
+  tokenExpiry  DateTime
+  calendarId   String
+  lastSyncAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

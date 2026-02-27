@@ -28,6 +28,12 @@ const envSchema = z.object({
   SMTP_USER: optionalNonEmptyString,
   SMTP_PASS: optionalNonEmptyString,
   EMAIL_FROM: z.string().default("UniPlanner <no-reply@uniplanner.local>"),
+  VAPID_PUBLIC_KEY: optionalNonEmptyString,
+  VAPID_PRIVATE_KEY: optionalNonEmptyString,
+  VAPID_SUBJECT: optionalNonEmptyString,
+  GOOGLE_CLIENT_ID: optionalNonEmptyString,
+  GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
+  GOOGLE_REDIRECT_URI: optionalNonEmptyString,
   REDIS_URL: z.string().default("redis://localhost:6379"),
   REDIS_PASSWORD: z.string().min(16, "REDIS_PASSWORD must be at least 16 chars").optional(),
 }).superRefine((data, ctx) => {
@@ -38,6 +44,26 @@ const envSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["SMTP_HOST"],
       message: "If SMTP is configured, SMTP_HOST, SMTP_PORT, SMTP_USER and SMTP_PASS are all required",
+    });
+  }
+
+  const vapidFields = [data.VAPID_PUBLIC_KEY, data.VAPID_PRIVATE_KEY, data.VAPID_SUBJECT];
+  const vapidDefinedCount = vapidFields.filter((value) => value !== undefined).length;
+  if (vapidDefinedCount !== 0 && vapidDefinedCount !== 3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["VAPID_PUBLIC_KEY"],
+      message: "If web push is configured, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT are all required",
+    });
+  }
+
+  const googleFields = [data.GOOGLE_CLIENT_ID, data.GOOGLE_CLIENT_SECRET, data.GOOGLE_REDIRECT_URI];
+  const googleDefinedCount = googleFields.filter((value) => value !== undefined).length;
+  if (googleDefinedCount !== 0 && googleDefinedCount !== 3) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["GOOGLE_CLIENT_ID"],
+      message: "If Google Calendar is configured, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI are all required",
     });
   }
 });
