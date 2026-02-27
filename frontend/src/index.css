@@ -74,6 +74,9 @@
   --text-muted: #7f96b2;
   --line: #2a3a52;
   --danger: #f07066;
+  --brand: var(--brand-400);
+  --brand-soft: var(--brand-800);
+  --accent: var(--accent-400);
 }
 
 body {
@@ -139,12 +142,10 @@ button {
 }
 
 .surface-elevated {
-  background: linear-gradient(180deg, var(--surface), var(--surface-soft));
   box-shadow: 0 12px 40px -26px rgba(18, 37, 63, 0.42);
 }
 
 .dark .surface-elevated {
-  background: linear-gradient(180deg, var(--surface), var(--surface-soft));
   box-shadow: 0 12px 40px -26px rgba(0, 0, 0, 0.7);
 }
 
@@ -275,3 +276,4 @@ button {
     transform: translateY(0);
   }
 }
+
