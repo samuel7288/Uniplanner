@@ -1,20 +1,55 @@
+import { Suspense, lazy, type ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ProtectedRoute, PublicRoute } from "./components/RouteGuards";
-import { AssignmentsPage } from "./pages/AssignmentsPage";
-import { CalendarPage } from "./pages/CalendarPage";
-import { CoursesPage } from "./pages/CoursesPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { ExamsPage } from "./pages/ExamsPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { LoginPage } from "./pages/LoginPage";
-import { NotFoundPage } from "./pages/NotFoundPage";
-import { NotificationsPage } from "./pages/NotificationsPage";
-import { ProjectsPage } from "./pages/ProjectsPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { SchedulePage } from "./pages/SchedulePage";
-import { SettingsPage } from "./pages/SettingsPage";
+
+const LoginPage = lazy(() => import("./pages/LoginPage").then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import("./pages/RegisterPage").then((m) => ({ default: m.RegisterPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
+const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const CoursesPage = lazy(() => import("./pages/CoursesPage").then((m) => ({ default: m.CoursesPage })));
+const SchedulePage = lazy(() => import("./pages/SchedulePage").then((m) => ({ default: m.SchedulePage })));
+const AssignmentsPage = lazy(() => import("./pages/AssignmentsPage").then((m) => ({ default: m.AssignmentsPage })));
+const ExamsPage = lazy(() => import("./pages/ExamsPage").then((m) => ({ default: m.ExamsPage })));
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage").then((m) => ({ default: m.ProjectsPage })));
+const CalendarPage = lazy(() => import("./pages/CalendarPage").then((m) => ({ default: m.CalendarPage })));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage").then((m) => ({ default: m.NotificationsPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
+
+function RouteLoadingFallback() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center">
+      <p className="text-sm font-medium text-ink-500 dark:text-ink-400">Cargando modulo...</p>
+    </div>
+  );
+}
+
+function RouteChunkErrorFallback() {
+  return (
+    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-2xl border border-ink-200 bg-white/80 p-6 text-center dark:border-ink-700 dark:bg-[var(--surface)]/70">
+      <p className="font-semibold text-ink-900 dark:text-ink-100">No se pudo cargar esta vista</p>
+      <p className="text-sm text-ink-600 dark:text-ink-400">Intenta recargar la pagina para descargar el modulo de nuevo.</p>
+      <button
+        type="button"
+        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"
+        onClick={() => window.location.reload()}
+      >
+        Recargar
+      </button>
+    </div>
+  );
+}
+
+function withAsyncBoundary(node: ReactElement): ReactElement {
+  return (
+    <ErrorBoundary fallback={<RouteChunkErrorFallback />}>
+      <Suspense fallback={<RouteLoadingFallback />}>{node}</Suspense>
+    </ErrorBoundary>
+  );
+}
 
 function App() {
   return (
@@ -23,7 +58,7 @@ function App() {
         path="/login"
         element={
           <PublicRoute>
-            <LoginPage />
+            {withAsyncBoundary(<LoginPage />)}
           </PublicRoute>
         }
       />
@@ -31,7 +66,7 @@ function App() {
         path="/register"
         element={
           <PublicRoute>
-            <RegisterPage />
+            {withAsyncBoundary(<RegisterPage />)}
           </PublicRoute>
         }
       />
@@ -39,7 +74,7 @@ function App() {
         path="/forgot-password"
         element={
           <PublicRoute>
-            <ForgotPasswordPage />
+            {withAsyncBoundary(<ForgotPasswordPage />)}
           </PublicRoute>
         }
       />
@@ -47,7 +82,7 @@ function App() {
         path="/reset-password"
         element={
           <PublicRoute>
-            <ResetPasswordPage />
+            {withAsyncBoundary(<ResetPasswordPage />)}
           </PublicRoute>
         }
       />
@@ -67,7 +102,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <DashboardPage />
+              {withAsyncBoundary(<DashboardPage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -77,7 +112,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <CoursesPage />
+              {withAsyncBoundary(<CoursesPage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -87,7 +122,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <SchedulePage />
+              {withAsyncBoundary(<SchedulePage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -97,7 +132,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <AssignmentsPage />
+              {withAsyncBoundary(<AssignmentsPage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -107,7 +142,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <ExamsPage />
+              {withAsyncBoundary(<ExamsPage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -117,7 +152,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <ProjectsPage />
+              {withAsyncBoundary(<ProjectsPage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -127,7 +162,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <CalendarPage />
+              {withAsyncBoundary(<CalendarPage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -137,7 +172,7 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <NotificationsPage />
+              {withAsyncBoundary(<NotificationsPage />)}
             </AppShell>
           </ProtectedRoute>
         }
@@ -147,12 +182,12 @@ function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <SettingsPage />
+              {withAsyncBoundary(<SettingsPage />)}
             </AppShell>
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="*" element={withAsyncBoundary(<NotFoundPage />)} />
     </Routes>
   );
 }

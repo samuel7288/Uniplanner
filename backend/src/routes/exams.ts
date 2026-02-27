@@ -3,6 +3,7 @@ import { Router } from "express";
 import { parseISO } from "date-fns";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -20,27 +21,34 @@ const examSchema = z.object({
   reminderOffsets: z.array(z.number().int().positive()).optional(),
 });
 
+const listExamsSchema = requestSchema({
+  query: z.object({
+    courseId: z.string().optional(),
+    q: z.string().max(255).optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    type: z.nativeEnum(ExamType).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(50).optional(),
+    sortBy: z.enum(["dateTime", "createdAt", "type", "title"]).optional(),
+    sortDir: z.enum(["asc", "desc"]).optional(),
+  }),
+});
+
+const createExamSchema = requestSchema({
+  body: examSchema,
+});
+
+const updateExamSchema = requestSchema({
+  body: examSchema.partial(),
+  params: z.object({ id: z.string().min(1) }),
+});
+
 router.use(requireAuth);
 
 router.get(
   "/",
-  validate(
-    z.object({
-      body: z.object({}).passthrough(),
-      params: z.object({}).passthrough(),
-      query: z.object({
-        courseId: z.string().optional(),
-        q: z.string().max(255).optional(),
-        from: z.string().optional(),
-        to: z.string().optional(),
-        type: z.nativeEnum(ExamType).optional(),
-        page: z.coerce.number().int().min(1).optional(),
-        limit: z.coerce.number().int().min(1).max(50).optional(),
-        sortBy: z.enum(["dateTime", "createdAt", "type", "title"]).optional(),
-        sortDir: z.enum(["asc", "desc"]).optional(),
-      }),
-    }),
-  ),
+  validate(listExamsSchema),
   asyncHandler(async (req, res) => {
     const { courseId, q, from, to, type, page, limit, sortBy, sortDir } = req.query as {
       courseId?: string;
@@ -115,13 +123,7 @@ router.get(
 
 router.post(
   "/",
-  validate(
-    z.object({
-      body: examSchema,
-      params: z.object({}).passthrough(),
-      query: z.object({}).passthrough(),
-    }),
-  ),
+  validate(createExamSchema),
   asyncHandler(async (req, res) => {
     const payload = req.body;
 
@@ -172,13 +174,7 @@ router.get(
 
 router.put(
   "/:id",
-  validate(
-    z.object({
-      body: examSchema.partial(),
-      params: z.object({ id: z.string().min(1) }),
-      query: z.object({}).passthrough(),
-    }),
-  ),
+  validate(updateExamSchema),
   asyncHandler(async (req, res) => {
     const current = await prisma.exam.findFirst({
       where: {

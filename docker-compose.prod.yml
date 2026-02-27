@@ -73,12 +73,50 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
     # Run migrations (not push) in production, then start compiled server
     command: sh -c "npx prisma migrate deploy && npm start"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://localhost:4000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     # No public ports — Caddy proxies /api traffic to this container
     expose:
       - "4000"
     networks:
       - internal
       - external
+
+  backup:
+    image: postgres:16-alpine
+    container_name: uniplanner-db-backup
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db_backups:/backups
+    command: >
+      sh -c '
+        mkdir -p /backups;
+        while true; do
+          ts=$$(date +%Y%m%d-%H%M%S);
+          PGPASSWORD="$${POSTGRES_PASSWORD}" pg_dump -h db -U "$${POSTGRES_USER}" "$${POSTGRES_DB}" | gzip > "/backups/uniplanner-$${ts}.sql.gz";
+          find /backups -type f -name "uniplanner-*.sql.gz" -mtime +7 -delete;
+          sleep 86400;
+        done
+      '
+    networks:
+      - internal
 
   frontend:
     build:
@@ -108,6 +146,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  db_backups:
   caddy_data:
   caddy_config:
 

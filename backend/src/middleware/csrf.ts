@@ -23,9 +23,10 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   const origin = toOrigin(req.get("origin") ?? undefined);
   const refererOrigin = toOrigin(req.get("referer") ?? undefined);
 
-  // Non-browser/API clients usually do not send Origin/Referer.
+  // Reject state-changing requests without browser provenance headers.
+  // This prevents CSRF bypass attempts with stripped Origin/Referer.
   if (!origin && !refererOrigin) {
-    next();
+    res.status(403).json({ message: "CSRF validation failed: missing Origin/Referer" });
     return;
   }
 

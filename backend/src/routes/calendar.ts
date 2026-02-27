@@ -2,6 +2,7 @@ import { addHours } from "date-fns";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -9,9 +10,7 @@ import { buildICS, mapClassSessionsToEvents, toCalendarEvent } from "../utils/ca
 
 const router = Router();
 
-const calendarQuerySchema = z.object({
-  body: z.object({}).passthrough(),
-  params: z.object({}).passthrough(),
+const calendarQuerySchema = requestSchema({
   query: z.object({
     courseId: z.string().optional(),
     types: z.string().optional(),

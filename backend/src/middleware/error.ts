@@ -22,13 +22,16 @@ export function errorHandler(
 
   const status = err.status ?? (isPrismaDbUnavailable ? 503 : 500);
   const message = isPrismaDbUnavailable ? "Database unavailable. Try again in a moment." : err.message;
+  const requestId = req.requestId;
+  const userId = req.user?.userId;
 
   if (status >= 500) {
-    logger.error({ err, method: req.method, url: req.url }, "Unhandled server error");
+    logger.error({ err, method: req.method, url: req.url, requestId, userId }, "Unhandled server error");
   }
 
   res.status(status).json({
     message: message || "Internal Server Error",
     details: err.details,
+    requestId,
   });
 }

@@ -13,6 +13,7 @@ coverage
 .vscode
 .idea
 .DS_Store
+backups/
 
 # Playwright
 frontend/playwright-report/

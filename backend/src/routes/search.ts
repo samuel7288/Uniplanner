@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
+import { requestSchema } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validation";
 import { asyncHandler } from "../utils/asyncHandler";
@@ -36,22 +37,20 @@ function sortSearchItems(
   });
 }
 
+const searchSchema = requestSchema({
+  query: z.object({
+    q: z.string().trim().min(1).max(500),
+    type: z.enum(["all", "course", "assignment", "exam"]).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(50).optional(),
+    sortBy: z.enum(["title", "updatedAt", "eventDate"]).optional(),
+    sortDir: z.enum(["asc", "desc"]).optional(),
+  }),
+});
+
 router.get(
   "/",
-  validate(
-    z.object({
-      body: z.object({}).passthrough(),
-      params: z.object({}).passthrough(),
-      query: z.object({
-        q: z.string().trim().min(1).max(500),
-        type: z.enum(["all", "course", "assignment", "exam"]).optional(),
-        page: z.coerce.number().int().min(1).optional(),
-        limit: z.coerce.number().int().min(1).max(50).optional(),
-        sortBy: z.enum(["title", "updatedAt", "eventDate"]).optional(),
-        sortDir: z.enum(["asc", "desc"]).optional(),
-      }),
-    }),
-  ),
+  validate(searchSchema),
   asyncHandler(async (req, res) => {
     const {
       q,

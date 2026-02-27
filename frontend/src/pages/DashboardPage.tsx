@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api, getErrorMessage } from "../lib/api";
+import { DashboardSummarySchema } from "../lib/schemas";
 import type { Assignment, Course, DashboardSummary, WeeklyPlanResponse } from "../lib/types";
 import { Alert, Badge, Button, Card, DashboardSkeleton, EmptyState, PageTitle, StatCard } from "../components/UI";
 
@@ -84,7 +85,7 @@ export function DashboardPage() {
           api.get<Course[]>("/courses"),
         ]);
 
-        setSummary(summaryResponse.data);
+        setSummary(DashboardSummarySchema.parse(summaryResponse.data));
         setPlan(planResponse.data.plan);
 
         const projections = await Promise.all(
