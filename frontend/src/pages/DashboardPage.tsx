@@ -175,7 +175,7 @@ export function DashboardPage() {
               value={summary.kpis.pendingAssignments}
               trend={summary.kpis.pendingAssignments > 8 ? "Carga alta esta semana" : "Carga controlada"}
               trendData={mockTrend(summary.kpis.pendingAssignments)}
-              className="animate-stagger-in stagger-1"
+              className="min-h-[10.5rem] animate-stagger-in stagger-1"
             />
             <StatCard
               tone="default"
@@ -183,7 +183,7 @@ export function DashboardPage() {
               value={summary.kpis.upcomingExamsCount}
               trend={summary.kpis.upcomingExamsCount > 0 ? "Revisa plan semanal" : "Sin examenes cercanos"}
               trendData={mockTrend(summary.kpis.upcomingExamsCount)}
-              className="animate-stagger-in stagger-2"
+              className="min-h-[10.5rem] animate-stagger-in stagger-2"
             />
             <StatCard
               tone="warning"
@@ -191,7 +191,7 @@ export function DashboardPage() {
               value={summary.kpis.unreadNotifications}
               trend={summary.kpis.unreadNotifications > 0 ? "Hay recordatorios pendientes" : "Inbox al dia"}
               trendData={mockTrend(summary.kpis.unreadNotifications)}
-              className="animate-stagger-in stagger-3"
+              className="min-h-[10.5rem] animate-stagger-in stagger-3"
             />
             <StatCard
               tone={summary.kpis.riskCoursesCount > 0 ? "danger" : "success"}
@@ -199,7 +199,7 @@ export function DashboardPage() {
               value={summary.kpis.riskCoursesCount}
               trend={summary.kpis.riskCoursesCount > 0 ? "Accion recomendada hoy" : "Rendimiento estable"}
               trendData={mockTrend(summary.kpis.riskCoursesCount)}
-              className="animate-stagger-in stagger-4"
+              className="min-h-[10.5rem] animate-stagger-in stagger-4"
             />
           </div>
 

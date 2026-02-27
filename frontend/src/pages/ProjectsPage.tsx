@@ -1,7 +1,7 @@
-import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
+﻿import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { api, getErrorMessage } from "../lib/api";
@@ -138,7 +138,7 @@ function DraggableTaskCard({
                 className="px-2 py-1 text-xs"
                 onClick={() => onMove(task.id, option.id)}
               >
-                → {option.label}
+                Mover a {option.label}
               </Button>
             ))}
         </div>
@@ -206,6 +206,7 @@ export function ProjectsPage() {
     open: false, id: null, name: "",
   });
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const formAnchorRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -387,6 +388,10 @@ export function ProjectsPage() {
     }
   }
 
+  function scrollToProjectForm() {
+    formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div className="space-y-6">
       <PageTitle
@@ -397,9 +402,10 @@ export function ProjectsPage() {
 
       {error && <Alert tone="error" message={error} />}
 
-      <div className="grid gap-4 lg:grid-cols-[360px,1fr]">
+      <div className="grid gap-4 lg:grid-cols-[420px,1fr]">
         {/* Left panel */}
         <Card>
+          <div ref={formAnchorRef} className="scroll-mt-28" />
           <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">Nuevo proyecto</h2>
           <form className="mt-3 grid gap-3" onSubmit={createProject}>
             <Field label="Nombre">
@@ -500,6 +506,11 @@ export function ProjectsPage() {
                 context="projects"
                 title="Sin proyectos"
                 description="Crea un proyecto para empezar a organizar milestones y tareas."
+                action={
+                  <Button type="button" onClick={scrollToProjectForm}>
+                    Crear proyecto
+                  </Button>
+                }
               />
             )}
           </div>
@@ -526,6 +537,11 @@ export function ProjectsPage() {
               context="projects"
               title="Selecciona un proyecto"
               description="Elige un proyecto de la lista para administrar milestones y tablero kanban."
+              action={
+                <Button type="button" onClick={scrollToProjectForm}>
+                  Crear proyecto
+                </Button>
+              }
             />
           )}
           {selectedProject && (
@@ -578,7 +594,7 @@ export function ProjectsPage() {
                           </span>
                         )}
                         {milestone.completed && (
-                          <span className="ml-2 text-xs text-accent-600 dark:text-accent-400">✓</span>
+                          <span className="ml-2 text-xs text-accent-600 dark:text-accent-400">OK</span>
                         )}
                       </button>
                     ))}
@@ -644,7 +660,12 @@ export function ProjectsPage() {
       <ConfirmDialog
         open={confirmDelete.open}
         title="Eliminar proyecto"
-        description={`¿Confirmas que deseas eliminar "${confirmDelete.name}"? Se eliminaran todas sus tareas y milestones. Esta accion no se puede deshacer.`}
+        description={
+          <span>
+            Confirmas eliminar <strong>"{confirmDelete.name}"</strong>? Se eliminaran todas sus tareas y milestones.
+            Esta accion no se puede deshacer.
+          </span>
+        }
         onConfirm={async () => {
           if (confirmDelete.id) await removeProject(confirmDelete.id);
           setConfirmDelete({ open: false, id: null, name: "" });

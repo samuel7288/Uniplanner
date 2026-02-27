@@ -31,7 +31,7 @@ export function BottomNav() {
             to={item.to}
             className={({ isActive }) =>
               clsx(
-                "flex flex-1 flex-col items-center justify-center py-2 text-[0.62rem] font-semibold transition",
+                "flex flex-1 flex-col items-center justify-center py-3 text-xs font-semibold transition",
                 isActive
                   ? "text-brand-600 dark:text-brand-400"
                   : "text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200",

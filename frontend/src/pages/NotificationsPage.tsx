@@ -1,6 +1,8 @@
 import { BellAlertIcon } from "@heroicons/react/24/outline";
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { api, getErrorMessage } from "../lib/api";
 import type { Notification, PaginatedResponse, PaginationMeta } from "../lib/types";
 import { Alert, Badge, Button, Card, EmptyState, PageTitle, SelectInput, Skeleton } from "../components/UI";
@@ -66,6 +68,7 @@ function notificationTone(type: Notification["type"]): "brand" | "warning" | "su
 }
 
 export function NotificationsPage() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [filters, setFilters] = useState<NotificationFilters>(loadSavedFilters);
@@ -206,9 +209,14 @@ export function NotificationsPage() {
             title="Sin notificaciones"
             description="No hay alertas para los filtros seleccionados."
             action={
-              <Button type="button" variant="ghost" onClick={() => updateFilters(defaultFilters)}>
-                Limpiar filtros
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button type="button" variant="ghost" onClick={() => updateFilters(defaultFilters)}>
+                  Limpiar filtros
+                </Button>
+                <Button type="button" variant="subtle" onClick={() => navigate("/assignments")}>
+                  Crear actividad
+                </Button>
+              </div>
             }
           />
         ) : (
@@ -222,23 +230,40 @@ export function NotificationsPage() {
                     : "rounded-2xl border border-brand-100 bg-brand-50/50 p-4 dark:border-brand-700/40 dark:bg-brand-700/15"
                 }
               >
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="font-semibold text-ink-900 dark:text-ink-100">{notification.title}</h3>
-                  <div className="flex items-center gap-2">
-                    <Badge tone={notificationTone(notification.type)}>{notification.type}</Badge>
-                    {!notification.read && <Badge tone="brand">Nueva</Badge>}
-                  </div>
-                </div>
-                <p className="text-sm text-ink-700 dark:text-ink-300">{notification.message}</p>
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-ink-500 dark:text-ink-400">
-                    {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                  </p>
+                <div className="flex items-start gap-3">
                   {!notification.read && (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => void markRead(notification.id)}>
-                      Marcar leida
-                    </Button>
+                    <span
+                      className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-500"
+                      aria-label="No leida"
+                    />
                   )}
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <h3
+                        className={clsx(
+                          "text-ink-900 dark:text-ink-100",
+                          notification.read ? "font-semibold" : "font-bold",
+                        )}
+                      >
+                        {notification.title}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <Badge tone={notificationTone(notification.type)}>{notification.type}</Badge>
+                        {!notification.read && <Badge tone="brand">Nueva</Badge>}
+                      </div>
+                    </div>
+                    <p className="text-sm text-ink-700 dark:text-ink-300">{notification.message}</p>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs text-ink-500 dark:text-ink-400">
+                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                      </p>
+                      {!notification.read && (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => void markRead(notification.id)}>
+                          Marcar leida
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </article>
             ))}

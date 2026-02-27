@@ -1,6 +1,6 @@
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { Fragment } from "react";
+import { Fragment, ReactNode } from "react";
 import { Button } from "./UI";
 
 export function ConfirmDialog({
@@ -15,7 +15,7 @@ export function ConfirmDialog({
 }: {
   open: boolean;
   title: string;
-  description: string;
+  description: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: "danger" | "brand";
