@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { api, getErrorMessage } from "../lib/api";
+import { extractDayKeyFromInput, useConflictDetection } from "../hooks/useConflictDetection";
 import type { Course, PaginatedResponse, PaginationMeta, Project, ProjectTask } from "../lib/types";
 import { Alert, Badge, Button, Card, EmptyState, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -222,6 +223,16 @@ export function ProjectsPage() {
     if (!activeDragId || !selectedProject) return null;
     return selectedProject.tasks.find((t) => t.id === activeDragId) ?? null;
   }, [activeDragId, selectedProject]);
+  const {
+    loading: conflictsLoading,
+    error: conflictsError,
+    getConflictsForDay,
+  } = useConflictDetection();
+  const projectDateConflicts = useMemo(() => {
+    const dayKey = extractDayKeyFromInput(projectForm.dueDate);
+    if (!dayKey) return [];
+    return getConflictsForDay(dayKey, { exclude: { type: "project" } });
+  }, [getConflictsForDay, projectForm.dueDate]);
 
   async function loadData() {
     const [projectsResponse, coursesResponse] = await Promise.all([
@@ -435,6 +446,19 @@ export function ProjectsPage() {
                 onChange={(event) => setProjectForm((prev) => ({ ...prev, dueDate: event.target.value }))}
               />
             </Field>
+            {conflictsError && <Alert tone="warning" message={`No se pudo verificar conflictos: ${conflictsError}`} />}
+            {!conflictsError && projectDateConflicts.length > 0 && (
+              <Alert
+                tone="warning"
+                message={`Conflicto detectado: ya tienes ${projectDateConflicts.length} evaluacion(es) ese dia (${projectDateConflicts
+                  .slice(0, 2)
+                  .map((item) => item.title)
+                  .join(", ")}). Puedes guardar de todas formas.`}
+              />
+            )}
+            {conflictsLoading && !projectDateConflicts.length && projectForm.dueDate && (
+              <p className="text-xs text-ink-500 dark:text-ink-400">Verificando conflictos de fecha...</p>
+            )}
             <Button type="submit">Crear proyecto</Button>
           </form>
 

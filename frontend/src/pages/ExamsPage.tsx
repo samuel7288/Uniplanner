@@ -3,7 +3,7 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { CalendarDaysIcon, ListBulletIcon, Squares2X2Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -20,6 +20,7 @@ import {
   TextInput,
 } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { extractDayKeyFromInput, useConflictDetection } from "../hooks/useConflictDetection";
 import { api, getErrorMessage } from "../lib/api";
 import type {
   Course,
@@ -176,6 +177,18 @@ export function ExamsPage() {
   });
 
   const syllabusValue = watch("syllabus") ?? "";
+  const dateTimeValue = watch("dateTime") ?? "";
+  const {
+    loading: conflictsLoading,
+    error: conflictsError,
+    getConflictsForDay,
+  } = useConflictDetection();
+
+  const dateTimeConflicts = useMemo(() => {
+    const dayKey = extractDayKeyFromInput(dateTimeValue);
+    if (!dayKey) return [];
+    return getConflictsForDay(dayKey, { exclude: { type: "exam", id: editingId } });
+  }, [dateTimeValue, editingId, getConflictsForDay]);
 
   async function loadCourses() {
     const response = await api.get<Course[]>("/courses");
@@ -419,6 +432,19 @@ export function ExamsPage() {
                 aria-invalid={!!errors.dateTime}
               />
             </Field>
+            {conflictsError && <Alert tone="warning" message={`No se pudo verificar conflictos: ${conflictsError}`} />}
+            {!conflictsError && dateTimeConflicts.length > 0 && (
+              <Alert
+                tone="warning"
+                message={`Conflicto detectado: ya tienes ${dateTimeConflicts.length} evaluacion(es) ese dia (${dateTimeConflicts
+                  .slice(0, 2)
+                  .map((item) => item.title)
+                  .join(", ")}). Puedes guardar de todas formas.`}
+              />
+            )}
+            {conflictsLoading && !dateTimeConflicts.length && dateTimeValue && (
+              <p className="text-xs text-ink-500 dark:text-ink-400">Verificando conflictos de fecha...</p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <Field label="Tipo">
                 <SelectInput {...register("type")}>

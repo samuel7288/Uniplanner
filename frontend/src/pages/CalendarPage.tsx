@@ -6,6 +6,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Alert, Badge, Button, CalendarSkeleton, Card, PageTitle, SelectInput } from "../components/UI";
+import { extractDayKeyFromInput, useConflictDetection } from "../hooks/useConflictDetection";
 import { api, getErrorMessage } from "../lib/api";
 import type { CalendarEvent, Course } from "../lib/types";
 
@@ -33,6 +34,7 @@ export function CalendarPage() {
   const [syncingEventId, setSyncingEventId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { conflictDayKeys, error: conflictError } = useConflictDetection();
 
   const typeString = useMemo(() => selectedTypes.join(","), [selectedTypes]);
 
@@ -227,6 +229,7 @@ export function CalendarPage() {
       />
 
       {error && <Alert tone="error" message={error} />}
+      {conflictError && <Alert tone="warning" message={`Conflictos: no se pudo actualizar el analisis (${conflictError})`} />}
 
       <Card>
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr),auto] sm:items-end">
@@ -280,6 +283,7 @@ export function CalendarPage() {
           <>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge tone="brand">Eventos: {events.length}</Badge>
+              <Badge tone="warning">Dias con conflicto: {conflictDayKeys.size}</Badge>
               {selectedTypes.map((type) => (
                 <Badge key={type} tone="default">
                   {type}
@@ -361,6 +365,16 @@ export function CalendarPage() {
                       void shiftEventByDays(info.event.id, 1);
                     }
                   };
+                }}
+                dayCellDidMount={(info) => {
+                  const dayKey = extractDayKeyFromInput(info.date.toISOString());
+                  if (!dayKey || !conflictDayKeys.has(dayKey)) return;
+                  const existing = info.el.querySelector(".calendar-conflict-dot");
+                  if (existing) return;
+                  const dot = document.createElement("span");
+                  dot.className = "calendar-conflict-dot";
+                  dot.setAttribute("aria-hidden", "true");
+                  info.el.appendChild(dot);
                 }}
                 eventAllow={(_dropInfo, draggedEvent) => {
                   if (!draggedEvent) return false;
