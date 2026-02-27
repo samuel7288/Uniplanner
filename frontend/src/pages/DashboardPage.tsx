@@ -12,14 +12,16 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api, getErrorMessage } from "../lib/api";
-import { DashboardSummarySchema, StudyGoalProgressSchema, StudyWeekSummarySchema } from "../lib/schemas";
+import { CoachHintSchema, DashboardSummarySchema, StudyGoalProgressSchema, StudyWeekSummarySchema } from "../lib/schemas";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { useWeeklyLoad } from "../hooks/useWeeklyLoad";
+import { AcademicCoach } from "../components/AcademicCoach";
 import { WeeklyLoadChart } from "./dashboard/WeeklyLoadChart";
 import { StudyGoalsPanel } from "./dashboard/StudyGoalsPanel";
 import { WeeklyStudyChart } from "./dashboard/WeeklyStudyChart";
 import type {
   Assignment,
+  CoachHint,
   Course,
   DashboardSummary,
   StudyGoalProgress,
@@ -41,6 +43,7 @@ const initialSummary: DashboardSummary = {
 };
 const FOCUS_MODE_STORAGE_KEY = "uniplanner_focus_mode_enabled_v1";
 const POMODORO_STATE_STORAGE_KEY = "uniplanner_pomodoro_state_v1";
+const COACH_DISMISS_KEY = "uniplanner_coach_dismissed_v1";
 
 type TimelineItem = {
   id: string;
@@ -101,6 +104,9 @@ export function DashboardPage() {
   const [studyGoals, setStudyGoals] = useState<StudyGoalProgress[]>([]);
   const [studyGoalsLoading, setStudyGoalsLoading] = useState(true);
   const [studyGoalsError, setStudyGoalsError] = useState("");
+  const [coachHint, setCoachHint] = useState<CoachHint | null>(null);
+  const [coachLoading, setCoachLoading] = useState(true);
+  const [coachError, setCoachError] = useState("");
   const [pomodoroHydrated, setPomodoroHydrated] = useState(false);
   const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
   const { data: weeklyLoadData, loading: weeklyLoadLoading, error: weeklyLoadError } = useWeeklyLoad(12);
@@ -131,6 +137,56 @@ export function DashboardPage() {
       setStudyGoalsError(getErrorMessage(err));
     } finally {
       setStudyGoalsLoading(false);
+    }
+  }
+
+  function getTodayCoachDismissal(): { date: string; id: string } | null {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem(COACH_DISMISS_KEY);
+    if (!raw) return null;
+
+    try {
+      const parsed = JSON.parse(raw) as { date: string; id: string };
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function dismissCoachForToday(id: string) {
+    if (typeof window !== "undefined") {
+      const today = new Date().toISOString().slice(0, 10);
+      localStorage.setItem(COACH_DISMISS_KEY, JSON.stringify({ date: today, id }));
+    }
+    setCoachHint(null);
+  }
+
+  function handleCoachAction(href: string) {
+    const parsed = new URL(href, window.location.origin);
+    const courseFromQuery = parsed.searchParams.get("course");
+    if (courseFromQuery) {
+      setFocusCourseId(courseFromQuery);
+    }
+    navigate(`${parsed.pathname}${parsed.search}`);
+  }
+
+  async function loadCoachHint() {
+    try {
+      const response = await api.get<CoachHint>("/dashboard/coach-hint");
+      const parsed = CoachHintSchema.parse(response.data);
+      const dismissal = getTodayCoachDismissal();
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (dismissal && dismissal.date === today && dismissal.id === parsed.id) {
+        setCoachHint(null);
+      } else {
+        setCoachHint(parsed);
+      }
+      setCoachError("");
+    } catch (err) {
+      setCoachError(getErrorMessage(err));
+    } finally {
+      setCoachLoading(false);
     }
   }
 
@@ -316,6 +372,13 @@ export function DashboardPage() {
   }, [isFocusMode, location.pathname, navigate]);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const courseFromQuery = params.get("course");
+    if (!courseFromQuery) return;
+    setFocusCourseId(courseFromQuery);
+  }, [location.search]);
+
+  useEffect(() => {
     if (!isFocusMode) return;
 
     function handleEscape(event: KeyboardEvent) {
@@ -381,6 +444,11 @@ export function DashboardPage() {
   useEffect(() => {
     setStudyGoalsLoading(true);
     void loadStudyGoals();
+  }, []);
+
+  useEffect(() => {
+    setCoachLoading(true);
+    void loadCoachHint();
   }, []);
 
   useEffect(() => {
@@ -579,6 +647,14 @@ export function DashboardPage() {
       />
 
       {error && <Alert tone="error" message={error} />}
+
+      <AcademicCoach
+        hint={coachHint}
+        loading={coachLoading}
+        error={coachError}
+        onAction={handleCoachAction}
+        onDismiss={dismissCoachForToday}
+      />
 
       {loading ? (
         <DashboardSkeleton />

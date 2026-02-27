@@ -190,6 +190,17 @@ export type StudyGoalProgress = {
   sessions: number;
 };
 
+export type CoachHint = {
+  id: string;
+  tone: "danger" | "warning" | "success";
+  title: string;
+  message: string;
+  action: {
+    label: string;
+    href: string;
+  };
+};
+
 export type CalendarEvent = {
   id: string;
   title: string;

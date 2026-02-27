@@ -157,3 +157,14 @@ export const StudyGoalProgressSchema = z.array(
     sessions: z.number(),
   }),
 );
+
+export const CoachHintSchema = z.object({
+  id: z.string(),
+  tone: z.enum(["danger", "warning", "success"]),
+  title: z.string(),
+  message: z.string(),
+  action: z.object({
+    label: z.string(),
+    href: z.string(),
+  }),
+});
