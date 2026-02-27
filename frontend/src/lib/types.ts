@@ -8,7 +8,7 @@ export type User = {
   notifyInApp: boolean;
   notifyEmail: boolean;
   darkModePref?: boolean;
-  themePreset?: "ocean" | "forest" | "sunset" | "violet";
+  themePreset?: "ocean" | "forest" | "sunset" | "midnight" | "sepia" | "violet";
   browserPushEnabled?: boolean;
 };
 

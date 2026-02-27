@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ThemePresetSchema = z.enum(["ocean", "forest", "sunset", "violet"]);
+export const ThemePresetSchema = z.enum(["ocean", "forest", "sunset", "midnight", "sepia", "violet"]);
 
 export const UserSchema = z.object({
   id: z.string(),

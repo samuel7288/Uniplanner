@@ -11,6 +11,8 @@ const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }
   { id: "ocean", label: "Ocean", brand: "#264ad1", accent: "#1c9366" },
   { id: "forest", label: "Forest", brand: "#1a6e3c", accent: "#0e5c6b" },
   { id: "sunset", label: "Sunset", brand: "#c0451e", accent: "#b8820d" },
+  { id: "midnight", label: "Midnight", brand: "#285686", accent: "#0d7286" },
+  { id: "sepia", label: "Sepia", brand: "#916126", accent: "#64701f" },
   { id: "violet", label: "Violet", brand: "#6b28c8", accent: "#c428a0" },
 ];
 

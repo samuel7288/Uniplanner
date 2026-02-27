@@ -24,7 +24,7 @@ const updatePreferencesSchema = requestSchema({
     notifyInApp: z.boolean().optional(),
     notifyEmail: z.boolean().optional(),
     darkModePref: z.boolean().optional(),
-    themePreset: z.enum(["ocean", "forest", "sunset", "violet"]).optional(),
+    themePreset: z.enum(["ocean", "forest", "sunset", "midnight", "sepia", "violet"]).optional(),
     browserPushEnabled: z.boolean().optional(),
   }),
 });
