@@ -262,10 +262,15 @@ export function AssignmentsPage() {
                 variant="subtle"
                 size="sm"
                 onClick={() => {
-                  void api.delete(`/assignments/${createdId}`).then(() => {
-                    void loadAssignments();
-                    toast.dismiss(t.id);
-                  });
+                  void api
+                    .delete(`/assignments/${createdId}`)
+                    .then(() => {
+                      void loadAssignments();
+                      toast.dismiss(t.id);
+                    })
+                    .catch((err) => {
+                      toast.error(getErrorMessage(err));
+                    });
                 }}
               >
                 Deshacer
@@ -355,6 +360,9 @@ export function AssignmentsPage() {
                     .then(() => {
                       void loadAssignments();
                       toast.dismiss(t.id);
+                    })
+                    .catch((err) => {
+                      toast.error(getErrorMessage(err));
                     });
                 }}
               >

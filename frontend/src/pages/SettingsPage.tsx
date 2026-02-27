@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme, type ThemePreset } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { api, getErrorMessage } from "../lib/api";
+import type { User } from "../lib/types";
 import { Alert, Button, Card, Field, PageTitle, TextInput } from "../components/UI";
 
 const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }[] = [
@@ -15,7 +16,7 @@ const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }
 
 export function SettingsPage() {
   const { user, refreshProfile } = useAuth();
-  const { isDark, toggleDark, preset, setPreset } = useTheme();
+  const { isDark, toggleDark, preset, setPreset, setDarkMode } = useTheme();
   const {
     supported: browserNotifSupported,
     enabled: browserNotifEnabled,
@@ -48,7 +49,16 @@ export function SettingsPage() {
     if (typeof user.browserPushEnabled === "boolean") {
       setBrowserNotifEnabled(user.browserPushEnabled);
     }
-  }, [user]);
+  }, [
+    setBrowserNotifEnabled,
+    user?.browserPushEnabled,
+    user?.career,
+    user?.name,
+    user?.notifyEmail,
+    user?.notifyInApp,
+    user?.timezone,
+    user?.university,
+  ]);
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,20 +66,42 @@ export function SettingsPage() {
     setMessage("");
 
     try {
-      await api.put("/settings/profile", {
+      const profileResponse = await api.put<User>("/settings/profile", {
         name: profile.name,
         career: profile.career || null,
         university: profile.university || null,
         timezone: profile.timezone,
       });
 
-      await api.put("/settings/preferences", {
+      const preferencesResponse = await api.put<{
+        notifyInApp: boolean;
+        notifyEmail: boolean;
+        darkModePref: boolean;
+        themePreset: ThemePreset;
+        browserPushEnabled: boolean;
+      }>("/settings/preferences", {
         notifyInApp: profile.notifyInApp,
         notifyEmail: profile.notifyEmail,
         darkModePref: isDark,
         themePreset: preset,
         browserPushEnabled: browserNotifEnabled,
       });
+
+      const savedProfile = profileResponse.data;
+      const savedPreferences = preferencesResponse.data;
+
+      setProfile({
+        name: savedProfile.name,
+        career: savedProfile.career || "",
+        university: savedProfile.university || "",
+        timezone: savedProfile.timezone,
+        notifyInApp: savedPreferences.notifyInApp,
+        notifyEmail: savedPreferences.notifyEmail,
+      });
+
+      setDarkMode(savedPreferences.darkModePref);
+      setPreset(savedPreferences.themePreset);
+      setBrowserNotifEnabled(savedPreferences.browserPushEnabled);
 
       await refreshProfile();
       setMessage("Perfil actualizado.");

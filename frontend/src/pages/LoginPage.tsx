@@ -10,7 +10,7 @@ import { getErrorMessage } from "../lib/api";
 
 const loginSchema = z.object({
   email: z.string().email("Ingresa un email valido"),
-  password: z.string().min(8, "Debe tener al menos 8 caracteres"),
+  password: z.string().min(8, "Debe tener al menos 8 caracteres").max(72, "No puede exceder 72 caracteres"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
