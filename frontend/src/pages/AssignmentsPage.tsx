@@ -1,9 +1,10 @@
+import { DndContext, DragEndEvent, DragOverlay, PointerSensor, useDraggable, useDroppable, useSensor, useSensors } from "@dnd-kit/core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { CalendarDaysIcon, ListBulletIcon, Squares2X2Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -30,6 +31,11 @@ import type {
 
 const ASSIGNMENTS_FILTERS_KEY = "uniplanner_assignments_filters_v1";
 const ASSIGNMENTS_PAGE_KEY = "uniplanner_assignments_page_v1";
+const assignmentStatusColumns: Array<{ id: Assignment["status"]; label: string }> = [
+  { id: "PENDING", label: "Pendiente" },
+  { id: "IN_PROGRESS", label: "En progreso" },
+  { id: "DONE", label: "Completado" },
+];
 
 function parseCSV(input: string): string[] {
   return input
@@ -144,6 +150,125 @@ function priorityTone(priority: string): "default" | "warning" | "danger" {
   return "default";
 }
 
+function DraggableAssignmentCard({
+  assignment,
+  onMove,
+  isDraggingOverlay = false,
+}: {
+  assignment: Assignment;
+  onMove: (assignmentId: string, status: Assignment["status"]) => void;
+  isDraggingOverlay?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: assignment.id });
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined;
+
+  return (
+    <article
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={clsx(
+        "rounded-xl border border-ink-200 bg-white p-3 shadow-soft dark:border-ink-700 dark:bg-[var(--surface)]",
+        (isDragging || isDraggingOverlay) && "opacity-60 ring-2 ring-brand-300",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-100">{assignment.title}</h3>
+          <p className="text-xs text-ink-500 dark:text-ink-400">
+            {assignment.course?.name || "Sin materia"} - {format(new Date(assignment.dueDate), "dd/MM HH:mm")}
+          </p>
+        </div>
+        <button
+          type="button"
+          {...listeners}
+          className="cursor-grab rounded p-1 text-ink-400 hover:text-ink-700 dark:text-ink-500 dark:hover:text-ink-200 active:cursor-grabbing"
+          aria-label="Arrastrar tarea"
+        >
+          <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
+            <circle cx="3" cy="3" r="1.4" />
+            <circle cx="9" cy="3" r="1.4" />
+            <circle cx="3" cy="8" r="1.4" />
+            <circle cx="9" cy="8" r="1.4" />
+            <circle cx="3" cy="13" r="1.4" />
+            <circle cx="9" cy="13" r="1.4" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="mt-2 flex items-center gap-1.5">
+        <Badge tone={priorityTone(assignment.priority)}>{assignment.priority}</Badge>
+        <Badge tone={statusTone(assignment.status)}>{assignment.status}</Badge>
+      </div>
+
+      {!isDraggingOverlay && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {assignmentStatusColumns
+            .filter((column) => column.id !== assignment.status)
+            .map((column) => (
+              <Button
+                key={column.id}
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="px-2 py-1 text-xs"
+                onClick={() => onMove(assignment.id, column.id)}
+              >
+                {column.label}
+              </Button>
+            ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function AssignmentKanbanColumn({
+  id,
+  label,
+  assignments,
+  onMove,
+}: {
+  id: Assignment["status"];
+  label: string;
+  assignments: Assignment[];
+  onMove: (assignmentId: string, status: Assignment["status"]) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+
+  return (
+    <section
+      ref={setNodeRef}
+      className={clsx(
+        "rounded-2xl border p-3 transition",
+        isOver
+          ? "border-brand-400 bg-brand-50/60 dark:border-brand-600 dark:bg-brand-700/10"
+          : "border-ink-200 bg-ink-50/50 dark:border-ink-700 dark:bg-ink-800/30",
+      )}
+    >
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-600 dark:text-ink-400">
+        {label}
+        <span className="ml-1.5 rounded-full bg-ink-200 px-1.5 py-0.5 text-[0.65rem] font-bold text-ink-600 dark:bg-ink-700 dark:text-ink-400">
+          {assignments.length}
+        </span>
+      </h3>
+
+      <div className="space-y-2">
+        {assignments.map((assignment) => (
+          <DraggableAssignmentCard key={assignment.id} assignment={assignment} onMove={onMove} />
+        ))}
+        {assignments.length === 0 && (
+          <div className="rounded-xl border border-dashed border-ink-200 p-3 text-center text-xs text-ink-400 dark:border-ink-700 dark:text-ink-500">
+            Sin tareas
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function AssignmentsPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -161,7 +286,14 @@ export function AssignmentsPage() {
     id: null,
     title: "",
   });
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const formAnchorRef = useRef<HTMLDivElement>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const activeDragAssignment = useMemo(() => {
+    if (!activeDragId) return null;
+    return assignments.find((assignment) => assignment.id === activeDragId) ?? null;
+  }, [activeDragId, assignments]);
 
   const {
     register,
@@ -317,6 +449,29 @@ export function AssignmentsPage() {
     } catch (err) {
       setError(getErrorMessage(err));
     }
+  }
+
+  async function updateAssignmentStatus(assignmentId: string, status: Assignment["status"]) {
+    try {
+      await api.put(`/assignments/${assignmentId}`, { status });
+      await loadAssignments();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }
+
+  function handleAssignmentDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    setActiveDragId(null);
+    if (!over) return;
+
+    const assignmentId = active.id as string;
+    const nextStatus = over.id as Assignment["status"];
+    if (!assignmentStatusColumns.some((column) => column.id === nextStatus)) return;
+
+    const assignment = assignments.find((item) => item.id === assignmentId);
+    if (!assignment || assignment.status === nextStatus) return;
+    void updateAssignmentStatus(assignmentId, nextStatus);
   }
 
   async function remove(assignmentId: string) {
@@ -575,6 +730,10 @@ export function AssignmentsPage() {
                 Vista tarjetas
               </Tab>
               <Tab className={tabClass}>
+                <Squares2X2Icon className="size-3.5" />
+                Kanban
+              </Tab>
+              <Tab className={tabClass}>
                 <CalendarDaysIcon className="size-3.5" />
                 Timeline
               </Tab>
@@ -746,6 +905,49 @@ export function AssignmentsPage() {
                     </div>
                   )}
                 </div>
+              </TabPanel>
+
+              <TabPanel>
+                {assignments.length === 0 ? (
+                  <EmptyState
+                    context="assignments"
+                    title="Sin tareas"
+                    description="Crea tu primera tarea para empezar."
+                    action={
+                      <Button type="button" onClick={scrollToForm}>
+                        Crear tarea
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    onDragStart={(event) => setActiveDragId(event.active.id as string)}
+                    onDragEnd={handleAssignmentDragEnd}
+                    onDragCancel={() => setActiveDragId(null)}
+                  >
+                    <div className="grid gap-3 lg:grid-cols-3">
+                      {assignmentStatusColumns.map((column) => (
+                        <AssignmentKanbanColumn
+                          key={column.id}
+                          id={column.id}
+                          label={column.label}
+                          assignments={assignments.filter((assignment) => assignment.status === column.id)}
+                          onMove={updateAssignmentStatus}
+                        />
+                      ))}
+                    </div>
+                    <DragOverlay>
+                      {activeDragAssignment && (
+                        <DraggableAssignmentCard
+                          assignment={activeDragAssignment}
+                          onMove={() => void 0}
+                          isDraggingOverlay
+                        />
+                      )}
+                    </DragOverlay>
+                  </DndContext>
+                )}
               </TabPanel>
 
               <TabPanel>
