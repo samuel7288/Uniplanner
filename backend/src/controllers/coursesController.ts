@@ -3,6 +3,7 @@ import type {
   AddSessionBody,
   CreateCourseBody,
   GradeProjectionQuery,
+  ImportCoursesBody,
   UpdateCourseBody,
   UpdateSessionBody,
 } from "../validators/coursesValidators";
@@ -14,6 +15,7 @@ import {
   getCourseById,
   getGradeProjection,
   getWeeklySchedule,
+  importCourses,
   listCourses,
   updateClassSession,
   updateCourse,
@@ -72,4 +74,10 @@ export const getGradeProjectionHandler = asyncHandler(async (req, res) => {
   const { target } = req.query as GradeProjectionQuery;
   const projection = await getGradeProjection(req.user!.userId, req.params.id, target);
   res.json(projection);
+});
+
+export const importCoursesHandler = asyncHandler(async (req, res) => {
+  const { courses } = req.body as ImportCoursesBody;
+  const result = await importCourses(req.user!.userId, courses);
+  res.json(result);
 });
