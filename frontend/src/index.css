@@ -13,9 +13,52 @@
   --text-main: #16324a;
   --text-muted: #57708b;
   --line: #ced9e3;
-  --brand: #264ad1;
-  --brand-soft: #d9e5ff;
-  --accent: #1c9366;
+  --brand-50: #eef3ff;
+  --brand-50-rgb: 238 243 255;
+  --brand-100: #d9e5ff;
+  --brand-100-rgb: 217 229 255;
+  --brand-200: #b8ccff;
+  --brand-200-rgb: 184 204 255;
+  --brand-300: #93b0ff;
+  --brand-300-rgb: 147 176 255;
+  --brand-400: #678eff;
+  --brand-400-rgb: 103 142 255;
+  --brand-500: #2f5be7;
+  --brand-500-rgb: 47 91 231;
+  --brand-600: #264ad1;
+  --brand-600-rgb: 38 74 209;
+  --brand-700: #213ea6;
+  --brand-700-rgb: 33 62 166;
+  --brand-800: #1d337f;
+  --brand-800-rgb: 29 51 127;
+  --brand-900: #1b2d66;
+  --brand-900-rgb: 27 45 102;
+  --brand: var(--brand-600);
+  --brand-rgb: var(--brand-600-rgb);
+  --brand-soft: var(--brand-100);
+  --brand-soft-rgb: var(--brand-100-rgb);
+  --accent-50: #eefbf6;
+  --accent-50-rgb: 238 251 246;
+  --accent-100: #d5f5e8;
+  --accent-100-rgb: 213 245 232;
+  --accent-200: #acebd3;
+  --accent-200-rgb: 172 235 211;
+  --accent-300: #7fddb9;
+  --accent-300-rgb: 127 221 185;
+  --accent-400: #4fcf9e;
+  --accent-400-rgb: 79 207 158;
+  --accent-500: #27b37e;
+  --accent-500-rgb: 39 179 126;
+  --accent-600: #1c9366;
+  --accent-600-rgb: 28 147 102;
+  --accent-700: #1a7655;
+  --accent-700-rgb: 26 118 85;
+  --accent-800: #195f48;
+  --accent-800-rgb: 25 95 72;
+  --accent-900: #154f3c;
+  --accent-900-rgb: 21 79 60;
+  --accent: var(--accent-600);
+  --accent-rgb: var(--accent-600-rgb);
   --danger: #d44a3d;
 }
 
@@ -28,9 +71,6 @@
   --text-main: #e2eaf4;
   --text-muted: #7f96b2;
   --line: #2a3a52;
-  --brand: #4d72f5;
-  --brand-soft: #1a2e5a;
-  --accent: #34c98a;
   --danger: #f07066;
 }
 
@@ -39,8 +79,8 @@ body {
   min-height: 100vh;
   font-family: "Manrope", ui-sans-serif, system-ui;
   background:
-    radial-gradient(circle at 10% 8%, rgba(38, 74, 209, 0.14), transparent 24rem),
-    radial-gradient(circle at 90% 14%, rgba(28, 147, 102, 0.13), transparent 22rem),
+    radial-gradient(circle at 10% 8%, rgb(var(--brand-600-rgb) / 0.14), transparent 24rem),
+    radial-gradient(circle at 90% 14%, rgb(var(--accent-600-rgb) / 0.13), transparent 22rem),
     linear-gradient(180deg, var(--bg-top), var(--bg-main));
   color: var(--text-main);
   transition: background 0.3s ease, color 0.3s ease;
@@ -48,8 +88,8 @@ body {
 
 .dark body {
   background:
-    radial-gradient(circle at 10% 8%, rgba(77, 114, 245, 0.10), transparent 24rem),
-    radial-gradient(circle at 90% 14%, rgba(52, 201, 138, 0.08), transparent 22rem),
+    radial-gradient(circle at 10% 8%, rgb(var(--brand-500-rgb) / 0.10), transparent 24rem),
+    radial-gradient(circle at 90% 14%, rgb(var(--accent-500-rgb) / 0.08), transparent 22rem),
     linear-gradient(180deg, var(--bg-top), var(--bg-main));
 }
 
@@ -126,20 +166,20 @@ button {
 }
 
 .fc .fc-button {
-  background: #264ad1;
-  border-color: #264ad1;
+  background: var(--brand-600);
+  border-color: var(--brand-600);
   border-radius: 0.75rem;
   font-weight: 600;
 }
 
 .fc .fc-button:hover {
-  background: #213ea6;
-  border-color: #213ea6;
+  background: var(--brand-700);
+  border-color: var(--brand-700);
 }
 
 .fc .fc-button-primary:not(:disabled).fc-button-active {
-  background: #1c9366;
-  border-color: #1c9366;
+  background: var(--accent-600);
+  border-color: var(--accent-600);
 }
 
 .fc-theme-standard td,
@@ -149,7 +189,7 @@ button {
 }
 
 .fc .fc-daygrid-day.fc-day-today {
-  background: rgba(38, 74, 209, 0.08);
+  background: rgb(var(--brand-600-rgb) / 0.08);
 }
 
 .fc .fc-col-header-cell-cushion,
@@ -164,18 +204,18 @@ button {
 }
 
 .dark .fc .fc-button {
-  background: #4d72f5;
-  border-color: #4d72f5;
+  background: var(--brand-500);
+  border-color: var(--brand-500);
 }
 
 .dark .fc .fc-button:hover {
-  background: #3a5ee8;
-  border-color: #3a5ee8;
+  background: var(--brand-600);
+  border-color: var(--brand-600);
 }
 
 .dark .fc .fc-button-primary:not(:disabled).fc-button-active {
-  background: #34c98a;
-  border-color: #34c98a;
+  background: var(--accent-500);
+  border-color: var(--accent-500);
 }
 
 .dark .fc-theme-standard td,
@@ -185,7 +225,7 @@ button {
 }
 
 .dark .fc .fc-daygrid-day.fc-day-today {
-  background: rgba(77, 114, 245, 0.10);
+  background: rgb(var(--brand-500-rgb) / 0.10);
 }
 
 .dark .fc .fc-col-header-cell-cushion,
