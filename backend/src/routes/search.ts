@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requestSchema } from "../lib/validate";
@@ -7,6 +8,13 @@ import { validate } from "../middleware/validation";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
+const searchLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many search requests. Try again in a minute." },
+});
 
 router.use(requireAuth);
 
@@ -50,6 +58,7 @@ const searchSchema = requestSchema({
 
 router.get(
   "/",
+  searchLimiter,
   validate(searchSchema),
   asyncHandler(async (req, res) => {
     const {

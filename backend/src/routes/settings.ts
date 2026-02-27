@@ -8,6 +8,7 @@ import { validate } from "../middleware/validation";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
+const BCRYPT_SALT_ROUNDS = 12;
 
 const updateProfileSchema = requestSchema({
   body: z.object({
@@ -137,7 +138,7 @@ router.post(
       return;
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
 
     await prisma.$transaction([
       prisma.user.update({

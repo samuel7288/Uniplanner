@@ -19,6 +19,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { sendEmail } from "../lib/email";
 
 const router = Router();
+const BCRYPT_SALT_ROUNDS = 12;
 
 const REFRESH_COOKIE = "refreshToken";
 const COOKIE_OPTIONS = {
@@ -108,7 +109,7 @@ router.post(
       return;
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     const user = await prisma.user.create({
       data: { email, passwordHash, name, career, university, timezone: timezone || "UTC" },
       select: {
@@ -287,7 +288,7 @@ router.post(
       return;
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
 
     await prisma.$transaction([
       prisma.user.update({ where: { id: existing.userId }, data: { passwordHash } }),
