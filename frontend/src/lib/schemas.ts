@@ -183,3 +183,30 @@ export const CoachHintSchema = z.object({
     href: z.string(),
   }),
 });
+
+export const AchievementsResponseSchema = z.object({
+  streak: z.object({
+    current: z.number(),
+    longest: z.number(),
+    lastStudyDate: z.string().nullable(),
+  }),
+  items: z.array(
+    z.object({
+      type: z.string(),
+      name: z.string(),
+      description: z.string(),
+      unlocked: z.boolean(),
+      unlockedAt: z.string().nullable(),
+    }),
+  ),
+  recentlyUnlocked: z.array(
+    z.object({
+      type: z.string(),
+      name: z.string(),
+      unlockedAt: z.string(),
+    }),
+  ),
+  metadata: z.object({
+    recentWindowHours: z.number(),
+  }),
+});

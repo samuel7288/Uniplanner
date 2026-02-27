@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { endOfWeek, startOfWeek } from "date-fns";
 import { prisma } from "../lib/prisma";
+import { evaluateAndUnlockAchievements } from "./achievementsService";
 import type { CreateStudySessionBody } from "../validators/studySessionsValidators";
 
 type HttpError = Error & { status?: number };
@@ -81,6 +82,10 @@ export async function createStudySession(userId: string, payload: CreateStudySes
     INSERT INTO "StudySession" ("id", "userId", "courseId", "startTime", "endTime", "duration", "source", "createdAt")
     VALUES (${id}, ${userId}, ${course.id}, ${payload.startTime}, ${payload.endTime}, ${duration}, ${payload.source}, ${createdAt})
   `;
+
+  await evaluateAndUnlockAchievements(userId).catch(() => {
+    // No bloquea la sesion si el sistema de logros falla de forma aislada.
+  });
 
   return {
     id,

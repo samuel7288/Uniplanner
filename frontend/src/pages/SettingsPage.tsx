@@ -5,7 +5,8 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme, type ThemePreset } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { api, getErrorMessage } from "../lib/api";
-import { SettingsPreferencesSchema, UserSchema } from "../lib/schemas";
+import { AchievementsResponseSchema, SettingsPreferencesSchema, UserSchema } from "../lib/schemas";
+import type { AchievementsResponse } from "../lib/types";
 import { Alert, Button, Card, Field, PageTitle, TextInput } from "../components/UI";
 
 const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }[] = [
@@ -40,6 +41,7 @@ export function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [archiveLoading, setArchiveLoading] = useState(false);
+  const [achievements, setAchievements] = useState<AchievementsResponse | null>(null);
   const [studyReminderPrefs, setStudyReminderPrefs] = useState({
     enabled: true,
     minDaysWithoutStudy: 3,
@@ -88,6 +90,26 @@ export function SettingsPage() {
     }
 
     void loadStudyReminderPrefs();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadAchievements() {
+      try {
+        const response = await api.get<AchievementsResponse>("/achievements");
+        const parsed = AchievementsResponseSchema.parse(response.data);
+        if (!active) return;
+        setAchievements(parsed);
+      } catch {
+        // no-op
+      }
+    }
+
+    void loadAchievements();
     return () => {
       active = false;
     };
@@ -333,6 +355,47 @@ export function SettingsPage() {
             ))}
           </select>
         </Field>
+      </Card>
+
+      <Card className="max-w-xl space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Logros
+        </h2>
+        {!achievements ? (
+          <p className="text-sm text-ink-600 dark:text-ink-400">Cargando logros...</p>
+        ) : (
+          <>
+            <p className="text-sm text-ink-600 dark:text-ink-400">
+              Racha actual: <strong>{achievements.streak.current}</strong> dias | Record:{" "}
+              <strong>{achievements.streak.longest}</strong> dias
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {achievements.items.map((item) => (
+                <div
+                  key={item.type}
+                  className={`rounded-xl border p-3 text-center ${
+                    item.unlocked
+                      ? "border-success-300 bg-success-50 dark:border-success-700/50 dark:bg-success-900/20"
+                      : "border-ink-200 bg-ink-100/60 dark:border-ink-700 dark:bg-ink-800/40"
+                  }`}
+                >
+                  <p
+                    className={`text-sm font-semibold ${
+                      item.unlocked
+                        ? "text-ink-800 dark:text-ink-100"
+                        : "text-ink-500 dark:text-ink-400"
+                    }`}
+                  >
+                    {item.unlocked ? item.name : "???"}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
+                    {item.unlocked ? item.description : "Logro bloqueado"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </Card>
 
       {/* Perfil */}

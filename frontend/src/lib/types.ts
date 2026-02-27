@@ -216,6 +216,31 @@ export type CoachHint = {
   };
 };
 
+export type AchievementItem = {
+  type: string;
+  name: string;
+  description: string;
+  unlocked: boolean;
+  unlockedAt: string | null;
+};
+
+export type AchievementsResponse = {
+  streak: {
+    current: number;
+    longest: number;
+    lastStudyDate: string | null;
+  };
+  items: AchievementItem[];
+  recentlyUnlocked: Array<{
+    type: string;
+    name: string;
+    unlockedAt: string;
+  }>;
+  metadata: {
+    recentWindowHours: number;
+  };
+};
+
 export type TodayClassSession = {
   id: string;
   dayOfWeek: number;

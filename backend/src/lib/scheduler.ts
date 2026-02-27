@@ -3,6 +3,7 @@ import cron from "node-cron";
 import { logger } from "./logger";
 import { prisma } from "./prisma";
 import { isRedisReady, notificationQueue, type NotificationJobData } from "./queue";
+import { processDailyStudyStreaks } from "../services/achievementsService";
 import { listStudyGoalsInRange } from "../services/studyGoalsService";
 import { listExamsNeedingRetrospectivePrompt } from "../services/examRetrospectiveService";
 import { listStudyReminderPreferences } from "../services/studyReminderPreferencesService";
@@ -422,6 +423,7 @@ export function startScheduler(): void {
       processStudyGoalNotifications(now),
       processSmartStudyReminders(now),
       processExamRetrospectivePrompts(now),
+      processDailyStudyStreaks(now),
     ]);
 
     const labels = [
@@ -431,6 +433,7 @@ export function startScheduler(): void {
       "StudyGoalNotifications",
       "SmartStudyReminders",
       "ExamRetrospectivePrompts",
+      "DailyStudyStreaks",
     ];
     results.forEach((result, i) => {
       if (result.status === "rejected") {

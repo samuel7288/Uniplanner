@@ -12,15 +12,23 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { api, getErrorMessage } from "../lib/api";
-import { CoachHintSchema, DashboardSummarySchema, StudyGoalProgressSchema, StudyWeekSummarySchema } from "../lib/schemas";
+import {
+  AchievementsResponseSchema,
+  CoachHintSchema,
+  DashboardSummarySchema,
+  StudyGoalProgressSchema,
+  StudyWeekSummarySchema,
+} from "../lib/schemas";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { useWeeklyLoad } from "../hooks/useWeeklyLoad";
 import { AcademicCoach } from "../components/AcademicCoach";
+import { StreakBadge } from "../components/StreakBadge";
 import { WeeklyLoadChart } from "./dashboard/WeeklyLoadChart";
 import { StudyGoalsPanel } from "./dashboard/StudyGoalsPanel";
 import { WeeklyStudyChart } from "./dashboard/WeeklyStudyChart";
 import type {
   Assignment,
+  AchievementsResponse,
   CoachHint,
   Course,
   DashboardSummary,
@@ -44,6 +52,7 @@ const initialSummary: DashboardSummary = {
 const FOCUS_MODE_STORAGE_KEY = "uniplanner_focus_mode_enabled_v1";
 const POMODORO_STATE_STORAGE_KEY = "uniplanner_pomodoro_state_v1";
 const COACH_DISMISS_KEY = "uniplanner_coach_dismissed_v1";
+const ACHIEVEMENTS_SEEN_KEY = "uniplanner_seen_achievements_v1";
 
 type TimelineItem = {
   id: string;
@@ -107,6 +116,7 @@ export function DashboardPage() {
   const [coachHint, setCoachHint] = useState<CoachHint | null>(null);
   const [coachLoading, setCoachLoading] = useState(true);
   const [coachError, setCoachError] = useState("");
+  const [achievements, setAchievements] = useState<AchievementsResponse | null>(null);
   const [pomodoroHydrated, setPomodoroHydrated] = useState(false);
   const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
   const { data: weeklyLoadData, loading: weeklyLoadLoading, error: weeklyLoadError } = useWeeklyLoad(12);
@@ -190,6 +200,43 @@ export function DashboardPage() {
     }
   }
 
+  function getSeenAchievementTypes(): Set<string> {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(ACHIEVEMENTS_SEEN_KEY);
+      if (!raw) return new Set();
+      const parsed = JSON.parse(raw) as string[];
+      return new Set(parsed);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveSeenAchievementTypes(types: Set<string>) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(ACHIEVEMENTS_SEEN_KEY, JSON.stringify(Array.from(types)));
+  }
+
+  async function loadAchievements() {
+    try {
+      const response = await api.get<AchievementsResponse>("/achievements");
+      const parsed = AchievementsResponseSchema.parse(response.data);
+      setAchievements(parsed);
+
+      const seenTypes = getSeenAchievementTypes();
+      const justUnlocked = parsed.recentlyUnlocked.filter((entry) => !seenTypes.has(entry.type));
+      for (const unlock of justUnlocked) {
+        toast.success(`Logro desbloqueado: ${unlock.name}`);
+        seenTypes.add(unlock.type);
+      }
+      if (justUnlocked.length > 0) {
+        saveSeenAchievementTypes(seenTypes);
+      }
+    } catch {
+      // Si falla, no interrumpe la carga principal del dashboard.
+    }
+  }
+
   function getTodayMinutesForCourse(summaryData: StudyWeekSummary, courseId: string, referenceDate: Date): number {
     return summaryData.sessions
       .filter((session) => session.courseId === courseId && isSameDay(new Date(session.startTime), referenceDate))
@@ -213,6 +260,7 @@ export function DashboardPage() {
 
       const refreshed = await loadStudyWeekSummary();
       await loadStudyGoals();
+      await loadAchievements();
       const fallbackCourseName = courses.find((course) => course.id === courseId)?.name ?? "la materia";
 
       if (refreshed) {
@@ -452,6 +500,10 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    void loadAchievements();
+  }, []);
+
+  useEffect(() => {
     if (courses.length === 0) {
       setFocusCourseId("");
       return;
@@ -655,6 +707,20 @@ export function DashboardPage() {
         onAction={handleCoachAction}
         onDismiss={dismissCoachForToday}
       />
+
+      {achievements && (
+        <Card className="flex flex-wrap items-center justify-between gap-2 py-3">
+          <div className="flex items-center gap-2">
+            <StreakBadge days={achievements.streak.current} />
+            <p className="text-xs text-ink-600 dark:text-ink-400">
+              Record: {achievements.streak.longest} dia(s)
+            </p>
+          </div>
+          <p className="text-xs text-ink-500 dark:text-ink-400">
+            {achievements.items.filter((item) => item.unlocked).length}/{achievements.items.length} logros desbloqueados
+          </p>
+        </Card>
+      )}
 
       {loading ? (
         <DashboardSkeleton />
