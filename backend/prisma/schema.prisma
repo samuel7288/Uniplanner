@@ -308,6 +308,7 @@ model Grade {
 
   @@index([userId])
   @@index([courseId])
+  @@index([userId, courseId])
   @@index([categoryId])
 }
 
