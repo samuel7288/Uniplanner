@@ -7,6 +7,7 @@ const createStudySessionBodySchema = z
     startTime: z.coerce.date(),
     endTime: z.coerce.date(),
     duration: z.number().int().min(1).max(24 * 60).optional(),
+    source: z.enum(["manual", "pomodoro"]).default("manual"),
   })
   .refine((data) => data.endTime > data.startTime, {
     path: ["endTime"],
@@ -27,4 +28,3 @@ export const listStudySessionsSchema = requestSchema({
 
 export type CreateStudySessionBody = z.infer<typeof createStudySessionSchema>["body"];
 export type ListStudySessionsQuery = z.infer<typeof listStudySessionsSchema>["query"];
-

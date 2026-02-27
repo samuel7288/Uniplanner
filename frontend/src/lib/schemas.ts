@@ -134,6 +134,7 @@ export const StudyWeekSummarySchema = z.object({
       duration: z.number(),
       startTime: z.string(),
       endTime: z.string(),
+      source: z.enum(["manual", "pomodoro"]),
       course: z.object({
         id: z.string(),
         name: z.string(),

@@ -24,11 +24,16 @@ async function ensureStudySessionsTable(): Promise<void> {
       "startTime" TIMESTAMP(3) NOT NULL,
       "endTime" TIMESTAMP(3) NOT NULL,
       "duration" INTEGER NOT NULL,
+      "source" TEXT NOT NULL DEFAULT 'manual',
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT "StudySession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
       CONSTRAINT "StudySession_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE ON UPDATE CASCADE
     )
   `);
+
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "StudySession" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'manual'`,
+  );
 
   await prisma.$executeRawUnsafe(
     `CREATE INDEX IF NOT EXISTS "StudySession_userId_startTime_idx" ON "StudySession"("userId", "startTime")`,
@@ -73,8 +78,8 @@ export async function createStudySession(userId: string, payload: CreateStudySes
   const createdAt = new Date();
 
   await prisma.$executeRaw`
-    INSERT INTO "StudySession" ("id", "userId", "courseId", "startTime", "endTime", "duration", "createdAt")
-    VALUES (${id}, ${userId}, ${course.id}, ${payload.startTime}, ${payload.endTime}, ${duration}, ${createdAt})
+    INSERT INTO "StudySession" ("id", "userId", "courseId", "startTime", "endTime", "duration", "source", "createdAt")
+    VALUES (${id}, ${userId}, ${course.id}, ${payload.startTime}, ${payload.endTime}, ${duration}, ${payload.source}, ${createdAt})
   `;
 
   return {
@@ -84,6 +89,7 @@ export async function createStudySession(userId: string, payload: CreateStudySes
     startTime: payload.startTime.toISOString(),
     endTime: payload.endTime.toISOString(),
     duration,
+    source: payload.source,
     createdAt: createdAt.toISOString(),
     course,
   };
@@ -103,6 +109,7 @@ export async function listCurrentWeekSessions(userId: string) {
       duration: number;
       startTime: Date;
       endTime: Date;
+      source: string;
       courseRefId: string;
       courseName: string;
       courseCode: string;
@@ -115,6 +122,7 @@ export async function listCurrentWeekSessions(userId: string) {
       s."duration",
       s."startTime",
       s."endTime",
+      s."source",
       c."id" AS "courseRefId",
       c."name" AS "courseName",
       c."code" AS "courseCode",
@@ -171,6 +179,7 @@ export async function listCurrentWeekSessions(userId: string) {
       duration: session.duration,
       startTime: session.startTime.toISOString(),
       endTime: session.endTime.toISOString(),
+      source: session.source,
       course: {
         id: session.courseRefId,
         name: session.courseName,

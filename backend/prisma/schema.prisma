@@ -301,6 +301,7 @@ model StudySession {
   startTime DateTime
   endTime   DateTime
   duration  Int
+  source    String   @default("manual")
   createdAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

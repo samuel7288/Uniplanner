@@ -160,6 +160,7 @@ export type StudySession = {
   duration: number;
   startTime: string;
   endTime: string;
+  source: "manual" | "pomodoro";
   course: Pick<Course, "id" | "name" | "code" | "color">;
 };
 

@@ -1,6 +1,7 @@
 import { AcademicCapIcon, BellAlertIcon, ClockIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
+import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   PolarAngleAxis,
@@ -12,6 +13,7 @@ import {
 } from "recharts";
 import { api, getErrorMessage } from "../lib/api";
 import { DashboardSummarySchema, StudyWeekSummarySchema } from "../lib/schemas";
+import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { useWeeklyLoad } from "../hooks/useWeeklyLoad";
 import { WeeklyLoadChart } from "./dashboard/WeeklyLoadChart";
 import { WeeklyStudyChart } from "./dashboard/WeeklyStudyChart";
@@ -30,6 +32,7 @@ const initialSummary: DashboardSummary = {
   focusTasks: [],
 };
 const FOCUS_MODE_STORAGE_KEY = "uniplanner_focus_mode_enabled_v1";
+const POMODORO_STATE_STORAGE_KEY = "uniplanner_pomodoro_state_v1";
 
 type TimelineItem = {
   id: string;
@@ -37,6 +40,15 @@ type TimelineItem = {
   title: string;
   subtitle: string;
   date: Date;
+};
+
+type PersistedPomodoroState = {
+  seconds: number;
+  running: boolean;
+  startedAt: string | null;
+  courseId: string | null;
+  selectedCourseId: string | null;
+  updatedAt: number;
 };
 
 function assignmentPriorityTone(priority: Assignment["priority"]): "default" | "warning" | "danger" {
@@ -60,6 +72,7 @@ function safeDateLabel(value: string): string {
 export function DashboardPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { notify } = useBrowserNotifications();
   const [summary, setSummary] = useState<DashboardSummary>(initialSummary);
   const [courses, setCourses] = useState<Course[]>([]);
   const [focusCourseId, setFocusCourseId] = useState("");
@@ -80,41 +93,135 @@ export function DashboardPage() {
   const isFocusMode = useMemo(() => new URLSearchParams(location.search).get("focus") === "1", [location.search]);
   const { data: weeklyLoadData, loading: weeklyLoadLoading, error: weeklyLoadError } = useWeeklyLoad(12);
 
-  async function loadStudyWeekSummary() {
+  async function loadStudyWeekSummary(): Promise<StudyWeekSummary | null> {
     try {
       const response = await api.get<StudyWeekSummary>("/study-sessions", {
         params: { week: "current" },
       });
-      setStudyWeekSummary(StudyWeekSummarySchema.parse(response.data));
+      const parsed = StudyWeekSummarySchema.parse(response.data);
+      setStudyWeekSummary(parsed);
       setStudyWeekError("");
+      return parsed;
     } catch (err) {
       setStudyWeekError(getErrorMessage(err));
+      return null;
     } finally {
       setStudyWeekLoading(false);
     }
   }
 
-  async function persistCompletedStudySession(endTime: Date) {
-    if (!pomodoroStartedAt || !pomodoroCourseId) return;
+  function getTodayMinutesForCourse(summaryData: StudyWeekSummary, courseId: string, referenceDate: Date): number {
+    return summaryData.sessions
+      .filter((session) => session.courseId === courseId && isSameDay(new Date(session.startTime), referenceDate))
+      .reduce((acc, session) => acc + session.duration, 0);
+  }
 
+  async function persistStudySession(startTime: Date, courseId: string, endTime: Date, partial: boolean) {
     const duration = Math.max(
       1,
-      Math.round((endTime.getTime() - pomodoroStartedAt.getTime()) / (1000 * 60)),
+      Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)),
     );
 
     try {
       await api.post("/study-sessions", {
-        courseId: pomodoroCourseId,
-        startTime: pomodoroStartedAt.toISOString(),
+        courseId,
+        startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
         duration,
+        source: "pomodoro",
       });
-      await loadStudyWeekSummary();
+
+      const refreshed = await loadStudyWeekSummary();
+      const fallbackCourseName = courses.find((course) => course.id === courseId)?.name ?? "la materia";
+
+      if (refreshed) {
+        const todayMinutes = getTodayMinutesForCourse(refreshed, courseId, endTime);
+        const sessionCourseName =
+          refreshed.sessions.find((session) => session.courseId === courseId)?.course.name ?? fallbackCourseName;
+        toast.success(
+          partial
+            ? `Sesion parcial guardada (${duration} min).`
+            : `Sesion guardada. Llevas ${todayMinutes} min estudiando ${sessionCourseName} hoy.`,
+        );
+      } else {
+        toast.success(partial ? "Sesion parcial guardada." : "Sesion guardada.");
+      }
+
+      if (!partial) {
+        const notification = notify("Pomodoro completado", {
+          body: `${duration} minutos registrados. Toma una pausa breve.`,
+          icon: "/icons/icon-192x192.png",
+          tag: `pomodoro-${courseId}-${Date.now()}`,
+        });
+        if (notification) {
+          notification.onclick = () => window.focus();
+        }
+      }
     } catch (err) {
       setStudyWeekError(getErrorMessage(err));
-    } finally {
-      setPomodoroStartedAt(null);
-      setPomodoroCourseId("");
+      toast.error("No se pudo guardar la sesion de estudio.");
+    }
+  }
+
+  async function persistCompletedStudySession(endTime: Date) {
+    if (!pomodoroStartedAt || !pomodoroCourseId) return;
+    await persistStudySession(pomodoroStartedAt, pomodoroCourseId, endTime, false);
+    setPomodoroStartedAt(null);
+    setPomodoroCourseId("");
+  }
+
+  async function persistPartialStudySession() {
+    if (!pomodoroStartedAt || !pomodoroCourseId) return;
+    await persistStudySession(pomodoroStartedAt, pomodoroCourseId, new Date(), true);
+    setPomodoroStartedAt(null);
+    setPomodoroCourseId("");
+    setPomodoroRunning(false);
+    setPomodoroSeconds(25 * 60);
+  }
+
+  function savePomodoroState() {
+    if (typeof window === "undefined") return;
+    const payload: PersistedPomodoroState = {
+      seconds: pomodoroSeconds,
+      running: pomodoroRunning,
+      startedAt: pomodoroStartedAt?.toISOString() ?? null,
+      courseId: pomodoroCourseId || null,
+      selectedCourseId: focusCourseId || null,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(POMODORO_STATE_STORAGE_KEY, JSON.stringify(payload));
+  }
+
+  function restorePomodoroState() {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem(POMODORO_STATE_STORAGE_KEY);
+    if (!raw) return;
+
+    try {
+      const persisted = JSON.parse(raw) as PersistedPomodoroState;
+      if (persisted.selectedCourseId) {
+        setFocusCourseId((prev) => prev || persisted.selectedCourseId || "");
+      }
+      if (persisted.startedAt && persisted.courseId) {
+        const startedAt = new Date(persisted.startedAt);
+        if (!Number.isNaN(startedAt.getTime())) {
+          setPomodoroStartedAt(startedAt);
+          setPomodoroCourseId(persisted.courseId);
+        }
+      }
+
+      const baseSeconds = Math.max(0, Math.min(25 * 60, Math.round(persisted.seconds || 0)));
+      if (persisted.running) {
+        const elapsed = Math.max(0, Math.floor((Date.now() - persisted.updatedAt) / 1000));
+        const remaining = Math.max(0, baseSeconds - elapsed);
+        setPomodoroSeconds(remaining);
+        setPomodoroRunning(remaining > 0);
+      } else {
+        setPomodoroSeconds(baseSeconds || 25 * 60);
+        setPomodoroRunning(false);
+      }
+    } catch {
+      localStorage.removeItem(POMODORO_STATE_STORAGE_KEY);
     }
   }
 
@@ -143,6 +250,9 @@ export function DashboardPage() {
     setPomodoroSeconds(25 * 60);
     setPomodoroStartedAt(null);
     setPomodoroCourseId("");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(POMODORO_STATE_STORAGE_KEY);
+    }
   }
 
   useEffect(() => {
@@ -164,6 +274,14 @@ export function DashboardPage() {
   }, [pomodoroCourseId, pomodoroRunning, pomodoroStartedAt]);
 
   useEffect(() => {
+    restorePomodoroState();
+  }, []);
+
+  useEffect(() => {
+    savePomodoroState();
+  }, [focusCourseId, pomodoroCourseId, pomodoroRunning, pomodoroSeconds, pomodoroStartedAt]);
+
+  useEffect(() => {
     if (location.pathname !== "/dashboard" || isFocusMode) return;
     if (typeof window === "undefined") return;
     if (localStorage.getItem(FOCUS_MODE_STORAGE_KEY) !== "true") return;
@@ -176,13 +294,12 @@ export function DashboardPage() {
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      localStorage.setItem(FOCUS_MODE_STORAGE_KEY, "false");
-      navigate("/dashboard", { replace: true });
+      void closeFocusMode();
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [isFocusMode, navigate]);
+  }, [closeFocusMode, isFocusMode]);
 
   useEffect(() => {
     async function load() {
@@ -310,7 +427,10 @@ export function DashboardPage() {
     navigate("/dashboard?focus=1");
   }
 
-  function closeFocusMode() {
+  async function closeFocusMode() {
+    if (pomodoroStartedAt && pomodoroCourseId && pomodoroSeconds > 0) {
+      await persistPartialStudySession();
+    }
     localStorage.setItem(FOCUS_MODE_STORAGE_KEY, "false");
     navigate("/dashboard", { replace: true });
   }
@@ -324,7 +444,7 @@ export function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-400">Focus mode</p>
               <h1 className="font-display text-3xl font-semibold text-ink-100">Sesion de estudio sin distracciones</h1>
             </div>
-            <Button type="button" variant="ghost" onClick={closeFocusMode}>
+            <Button type="button" variant="ghost" onClick={() => void closeFocusMode()}>
               Salir de focus
             </Button>
           </div>
