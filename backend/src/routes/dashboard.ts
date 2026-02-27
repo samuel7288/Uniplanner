@@ -2,6 +2,7 @@ import { addDays, differenceInCalendarDays, endOfDay, startOfDay } from "date-fn
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
+import { ensureGradeCategoriesInfrastructure } from "../services/gradeCategoriesService";
 import { calculateCourseProjection } from "../utils/grading";
 import { asyncHandler } from "../utils/asyncHandler";
 
@@ -20,6 +21,21 @@ type CoachHint = {
     label: string;
     href: string;
   };
+};
+
+type GradeProjectionRow = {
+  courseId: string;
+  score: number;
+  maxScore: number;
+  weight: number;
+  categoryId: string | null;
+};
+
+type GradeCategoryRow = {
+  id: string;
+  courseId: string;
+  name: string;
+  weight: number;
 };
 
 async function getWeeklyStudyMinutesByCourse(userId: string, from: Date, to: Date) {
@@ -59,12 +75,14 @@ router.get(
   asyncHandler(async (req, res) => {
     const now = new Date();
     const nextWeek = addDays(now, 7);
+    const userId = req.user!.userId;
+    await ensureGradeCategoriesInfrastructure();
 
-    const [pendingAssignments, upcomingExams, unreadNotifications, courses, focusTasks] =
+    const [pendingAssignments, upcomingExams, unreadNotifications, courses, focusTasks, gradeRows, categoryRows] =
       await Promise.all([
         prisma.assignment.count({
           where: {
-            userId: req.user!.userId,
+            userId,
             status: {
               in: ["PENDING", "IN_PROGRESS"],
             },
@@ -72,7 +90,7 @@ router.get(
         }),
         prisma.exam.findMany({
           where: {
-            userId: req.user!.userId,
+            userId,
             dateTime: {
               gte: now,
               lte: nextWeek,
@@ -88,22 +106,23 @@ router.get(
         }),
         prisma.notification.count({
           where: {
-            userId: req.user!.userId,
+            userId,
             read: false,
           },
         }),
         prisma.course.findMany({
           where: {
-            userId: req.user!.userId,
+            userId,
             archived: false,
           },
-          include: {
-            grades: true,
+          select: {
+            id: true,
+            name: true,
           },
         }),
         prisma.assignment.findMany({
           where: {
-            userId: req.user!.userId,
+            userId,
             status: {
               in: ["PENDING", "IN_PROGRESS"],
             },
@@ -119,29 +138,88 @@ router.get(
             dueDate: "asc",
           },
         }),
+        prisma
+          .$queryRaw<GradeProjectionRow[]>`
+            SELECT
+              g."courseId",
+              g."score",
+              g."maxScore",
+              g."weight",
+              g."categoryId"
+            FROM "Grade" g
+            INNER JOIN "Course" c ON c."id" = g."courseId"
+            WHERE g."userId" = ${userId}
+              AND c."archived" = false
+          `
+          .catch(() => []),
+        prisma
+          .$queryRaw<GradeCategoryRow[]>`
+            SELECT
+              "id",
+              "courseId",
+              "name",
+              "weight"
+            FROM "GradeCategory"
+            WHERE "userId" = ${userId}
+          `
+          .catch(() => []),
       ]);
 
-    const riskCourses = courses
-      .map((course) => {
-        const projection = calculateCourseProjection(
-          course.grades.map((grade) => ({
-            score: grade.score,
-            maxScore: grade.maxScore,
-            weight: grade.weight,
-          })),
-          7,
-        );
+    const gradesByCourse = new Map<string, GradeProjectionRow[]>();
+    for (const grade of gradeRows) {
+      const bucket = gradesByCourse.get(grade.courseId) ?? [];
+      bucket.push(grade);
+      gradesByCourse.set(grade.courseId, bucket);
+    }
 
-        return {
-          courseId: course.id,
-          courseName: course.name,
-          currentAverage: Number(projection.currentAverage.toFixed(2)),
-          projectedFinal: Number(projection.projectedFinal.toFixed(2)),
-          coveredWeight: Number(projection.coveredWeight.toFixed(2)),
-        };
-      })
+    const categoriesByCourse = new Map<string, GradeCategoryRow[]>();
+    for (const category of categoryRows) {
+      const bucket = categoriesByCourse.get(category.courseId) ?? [];
+      bucket.push(category);
+      categoriesByCourse.set(category.courseId, bucket);
+    }
+
+    const courseProjections = courses.map((course) => {
+      const projection = calculateCourseProjection(
+        (gradesByCourse.get(course.id) ?? []).map((grade) => ({
+          score: grade.score,
+          maxScore: grade.maxScore,
+          weight: grade.weight,
+          categoryId: grade.categoryId,
+        })),
+        7,
+        {
+          categories: (categoriesByCourse.get(course.id) ?? []).map((category) => ({
+            id: category.id,
+            name: category.name,
+            weight: category.weight,
+          })),
+        },
+      );
+
+      return {
+        courseId: course.id,
+        courseName: course.name,
+        currentAverage: Number(projection.currentAverage.toFixed(2)),
+        projectedFinal: Number(projection.projectedFinal.toFixed(2)),
+        coveredWeight: Number(projection.coveredWeight.toFixed(2)),
+      };
+    });
+
+    const riskCourses = courseProjections
       .filter((entry) => entry.currentAverage > 0 && entry.currentAverage < 6)
       .sort((a, b) => a.currentAverage - b.currentAverage);
+
+    const gradedCourses = courseProjections.filter((entry) => entry.coveredWeight > 0);
+    const globalGpa =
+      gradedCourses.length > 0
+        ? Number(
+            (
+              gradedCourses.reduce((acc, entry) => acc + entry.currentAverage, 0) /
+              gradedCourses.length
+            ).toFixed(2),
+          )
+        : null;
 
     res.json({
       kpis: {
@@ -149,6 +227,7 @@ router.get(
         upcomingExamsCount: upcomingExams.length,
         unreadNotifications,
         riskCoursesCount: riskCourses.length,
+        globalGpa,
       },
       upcomingExams,
       riskCourses,
@@ -162,16 +241,20 @@ router.get(
   asyncHandler(async (req, res) => {
     const now = new Date();
     const userId = req.user!.userId;
+    await ensureGradeCategoriesInfrastructure();
     const inFiveDays = addDays(now, 5);
     const inTenDays = addDays(now, 10);
     const inSevenDays = addDays(now, 7);
     const weekStart = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)));
     const weekEnd = endOfDay(addDays(weekStart, 6));
 
-    const [courses, exams, assignments, weeklyStudyRows, lastStudyRows] = await Promise.all([
+    const [courses, exams, assignments, weeklyStudyRows, lastStudyRows, gradeRows, categoryRows] = await Promise.all([
       prisma.course.findMany({
         where: { userId, archived: false },
-        include: { grades: true },
+        select: {
+          id: true,
+          name: true,
+        },
       }),
       prisma.exam.findMany({
         where: {
@@ -202,17 +285,64 @@ router.get(
       }),
       getWeeklyStudyMinutesByCourse(userId, weekStart, weekEnd),
       getLatestStudySessionByCourse(userId),
+      prisma
+        .$queryRaw<GradeProjectionRow[]>`
+          SELECT
+            g."courseId",
+            g."score",
+            g."maxScore",
+            g."weight",
+            g."categoryId"
+          FROM "Grade" g
+          INNER JOIN "Course" c ON c."id" = g."courseId"
+          WHERE g."userId" = ${userId}
+            AND c."archived" = false
+        `
+        .catch(() => []),
+      prisma
+        .$queryRaw<GradeCategoryRow[]>`
+          SELECT
+            "id",
+            "courseId",
+            "name",
+            "weight"
+          FROM "GradeCategory"
+          WHERE "userId" = ${userId}
+        `
+        .catch(() => []),
     ]);
+
+    const gradesByCourse = new Map<string, GradeProjectionRow[]>();
+    for (const grade of gradeRows) {
+      const bucket = gradesByCourse.get(grade.courseId) ?? [];
+      bucket.push(grade);
+      gradesByCourse.set(grade.courseId, bucket);
+    }
+
+    const categoriesByCourse = new Map<string, GradeCategoryRow[]>();
+    for (const category of categoryRows) {
+      const bucket = categoriesByCourse.get(category.courseId) ?? [];
+      bucket.push(category);
+      categoriesByCourse.set(category.courseId, bucket);
+    }
 
     const projectedByCourse = new Map(
       courses.map((course) => {
         const projection = calculateCourseProjection(
-          course.grades.map((grade) => ({
+          (gradesByCourse.get(course.id) ?? []).map((grade) => ({
             score: grade.score,
             maxScore: grade.maxScore,
             weight: grade.weight,
+            categoryId: grade.categoryId,
           })),
           7,
+          {
+            categories: (categoriesByCourse.get(course.id) ?? []).map((category) => ({
+              id: category.id,
+              name: category.name,
+              weight: category.weight,
+            })),
+          },
         );
 
         return [course.id, Number(projection.projectedFinal.toFixed(2))];

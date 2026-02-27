@@ -78,6 +78,7 @@ export const DashboardSummarySchema = z.object({
     upcomingExamsCount: z.number(),
     unreadNotifications: z.number(),
     riskCoursesCount: z.number(),
+    globalGpa: z.number().nullable(),
   }),
   upcomingExams: z.array(ExamSchema),
   riskCourses: z.array(

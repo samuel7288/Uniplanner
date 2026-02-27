@@ -105,7 +105,18 @@ export type Grade = {
   score: number;
   maxScore: number;
   weight: number;
+  categoryId?: string | null;
   course?: Pick<Course, "name" | "code">;
+};
+
+export type GradeCategory = {
+  id: string;
+  userId: string;
+  courseId: string;
+  name: string;
+  weight: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Notification = {
@@ -123,6 +134,7 @@ export type DashboardSummary = {
     upcomingExamsCount: number;
     unreadNotifications: number;
     riskCoursesCount: number;
+    globalGpa: number | null;
   };
   upcomingExams: Exam[];
   riskCourses: Array<{
