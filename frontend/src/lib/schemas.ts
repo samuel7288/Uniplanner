@@ -41,6 +41,7 @@ const AssignmentSchema = z.object({
   title: z.string(),
   description: z.string().nullable().optional(),
   dueDate: z.string(),
+  estimatedMinutes: z.number().int().nullable().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   status: z.enum(["PENDING", "IN_PROGRESS", "DONE"]),
   repeatRule: z.enum(["NONE", "WEEKLY", "MONTHLY"]),

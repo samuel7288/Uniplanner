@@ -38,6 +38,7 @@ export type Assignment = {
   title: string;
   description?: string | null;
   dueDate: string;
+  estimatedMinutes?: number | null;
   priority: "LOW" | "MEDIUM" | "HIGH";
   status: "PENDING" | "IN_PROGRESS" | "DONE";
   repeatRule: "NONE" | "WEEKLY" | "MONTHLY";

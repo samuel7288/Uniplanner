@@ -71,6 +71,28 @@ const assignmentFormSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   status: z.enum(["PENDING", "IN_PROGRESS", "DONE"]),
   repeatRule: z.enum(["NONE", "WEEKLY", "MONTHLY"]),
+  estimatedHours: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value || value.trim().length === 0) return true;
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed >= 0 && parsed <= 24;
+      },
+      "Horas invalidas (0-24)",
+    ),
+  estimatedMinutesPart: z
+    .string()
+    .optional()
+    .refine(
+      (value) => {
+        if (!value || value.trim().length === 0) return true;
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed >= 0 && parsed <= 59;
+      },
+      "Minutos invalidos (0-59)",
+    ),
   tags: z.string().optional(),
   attachmentLinks: z
     .string()
@@ -79,6 +101,19 @@ const assignmentFormSchema = z.object({
       (value) => parseCSV(value ?? "").every((link) => isValidHttpUrl(link)),
       "Cada adjunto debe ser un link valido (http/https)",
     ),
+}).superRefine((values, ctx) => {
+  const hasHours = Boolean(values.estimatedHours && values.estimatedHours.trim().length > 0);
+  const hasMinutes = Boolean(values.estimatedMinutesPart && values.estimatedMinutesPart.trim().length > 0);
+  if (!hasHours && !hasMinutes) return;
+
+  const totalMinutes = (Number(values.estimatedHours ?? 0) || 0) * 60 + (Number(values.estimatedMinutesPart ?? 0) || 0);
+  if (totalMinutes <= 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["estimatedMinutesPart"],
+      message: "La estimacion debe ser mayor a 0 minutos",
+    });
+  }
 });
 
 type AssignmentFormValues = z.infer<typeof assignmentFormSchema>;
@@ -91,6 +126,8 @@ const emptyForm: AssignmentFormValues = {
   priority: "MEDIUM",
   status: "PENDING",
   repeatRule: "NONE",
+  estimatedHours: "",
+  estimatedMinutesPart: "",
   tags: "",
   attachmentLinks: "",
 };
@@ -151,6 +188,14 @@ function priorityTone(priority: string): "default" | "warning" | "danger" {
   return "default";
 }
 
+function formatEstimatedMinutes(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}min`;
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}min`;
+}
+
 function DraggableAssignmentCard({
   assignment,
   onMove,
@@ -181,6 +226,11 @@ function DraggableAssignmentCard({
           <p className="text-xs text-ink-500 dark:text-ink-400">
             {assignment.course?.name || "Sin materia"} - {format(new Date(assignment.dueDate), "dd/MM HH:mm")}
           </p>
+          {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+            <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+              Estimado: {formatEstimatedMinutes(assignment.estimatedMinutes)}
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -238,6 +288,10 @@ function AssignmentKanbanColumn({
   onMove: (assignmentId: string, status: Assignment["status"]) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
+  const estimatedTotalMinutes = assignments.reduce(
+    (total, assignment) => total + (assignment.estimatedMinutes ?? 0),
+    0,
+  );
 
   return (
     <section
@@ -255,6 +309,11 @@ function AssignmentKanbanColumn({
           {assignments.length}
         </span>
       </h3>
+      {estimatedTotalMinutes > 0 && (
+        <p className="mb-2 text-[0.68rem] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+          ~{formatEstimatedMinutes(estimatedTotalMinutes)} total
+        </p>
+      )}
 
       <div className="space-y-2">
         {assignments.map((assignment) => (
@@ -367,11 +426,20 @@ export function AssignmentsPage() {
   const onSubmit = handleSubmit(async (values) => {
     setError("");
 
+    const hasEstimateInput =
+      Boolean(values.estimatedHours?.trim()) || Boolean(values.estimatedMinutesPart?.trim());
+    const estimateHours = values.estimatedHours?.trim() ? Number(values.estimatedHours) : 0;
+    const estimateMinutesPart = values.estimatedMinutesPart?.trim() ? Number(values.estimatedMinutesPart) : 0;
+    const estimatedMinutesValue = hasEstimateInput
+      ? estimateHours * 60 + estimateMinutesPart
+      : null;
+
     const payload = {
       title: values.title.trim(),
       courseId: values.courseId || null,
       dueDate: new Date(values.dueDate).toISOString(),
       description: values.description?.trim() ? values.description.trim() : null,
+      estimatedMinutes: estimatedMinutesValue,
       priority: values.priority,
       status: values.status,
       repeatRule: values.repeatRule,
@@ -439,6 +507,7 @@ export function AssignmentsPage() {
   });
 
   function startEdit(assignment: Assignment) {
+    const estimated = assignment.estimatedMinutes ?? null;
     setEditingId(assignment.id);
     reset({
       title: assignment.title,
@@ -448,6 +517,8 @@ export function AssignmentsPage() {
       priority: assignment.priority,
       status: assignment.status,
       repeatRule: assignment.repeatRule,
+      estimatedHours: estimated !== null ? String(Math.floor(estimated / 60)) : "",
+      estimatedMinutesPart: estimated !== null ? String(estimated % 60) : "",
       tags: assignment.tags.join(", "),
       attachmentLinks: assignment.attachmentLinks.join(", "),
     });
@@ -523,6 +594,7 @@ export function AssignmentsPage() {
                       status: "PENDING",
                       repeatRule: snapshot.repeatRule,
                       description: snapshot.description || null,
+                      estimatedMinutes: snapshot.estimatedMinutes ?? null,
                       tags: snapshot.tags,
                       attachmentLinks: snapshot.attachmentLinks,
                     })
@@ -641,6 +713,28 @@ export function AssignmentsPage() {
                   <option value="WEEKLY">Semanal</option>
                   <option value="MONTHLY">Mensual</option>
                 </SelectInput>
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label="Tiempo estimado (horas)" error={errors.estimatedHours?.message?.toString()}>
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={24}
+                  step={1}
+                  placeholder="0"
+                  {...register("estimatedHours")}
+                />
+              </Field>
+              <Field label="Tiempo estimado (minutos)" error={errors.estimatedMinutesPart?.message?.toString()}>
+                <TextInput
+                  type="number"
+                  min={0}
+                  max={59}
+                  step={1}
+                  placeholder="0"
+                  {...register("estimatedMinutesPart")}
+                />
               </Field>
             </div>
             <Field
@@ -796,6 +890,11 @@ export function AssignmentsPage() {
                           {assignment.description}
                         </p>
                       )}
+                      {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+                        <p className="mt-1.5 text-xs font-semibold text-ink-600 dark:text-ink-400">
+                          Tiempo estimado: {formatEstimatedMinutes(assignment.estimatedMinutes)}
+                        </p>
+                      )}
                       {assignment.tags.length > 0 && (
                         <p className="mt-1.5 text-xs text-ink-500 dark:text-ink-400">
                           Tags: {assignment.tags.join(", ")}
@@ -874,6 +973,11 @@ export function AssignmentsPage() {
                       <p className="mt-1 text-xs font-semibold text-ink-600 dark:text-ink-400">
                         Vence: {format(new Date(assignment.dueDate), "dd/MM/yyyy HH:mm")}
                       </p>
+                      {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+                        <p className="mt-1 text-xs font-semibold text-ink-600 dark:text-ink-400">
+                          Estimado: {formatEstimatedMinutes(assignment.estimatedMinutes)}
+                        </p>
+                      )}
                       {assignment.description && (
                         <p className="mt-2 line-clamp-2 text-xs text-ink-600 dark:text-ink-400">
                           {assignment.description}
@@ -1013,6 +1117,11 @@ export function AssignmentsPage() {
                           <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">
                             {assignment.course?.name || "Sin materia"}
                           </p>
+                          {typeof assignment.estimatedMinutes === "number" && assignment.estimatedMinutes > 0 && (
+                            <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+                              {formatEstimatedMinutes(assignment.estimatedMinutes)}
+                            </p>
+                          )}
                           <div className="mt-2 flex gap-1.5">
                             <Badge tone={priorityTone(assignment.priority)}>{assignment.priority}</Badge>
                             <Badge tone={statusTone(assignment.status)}>{assignment.status}</Badge>

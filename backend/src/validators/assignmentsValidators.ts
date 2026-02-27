@@ -7,6 +7,7 @@ const assignmentBodySchema = z.object({
   courseId: z.string().optional().nullable(),
   dueDate: z.coerce.date(),
   description: z.string().max(5000).optional().nullable(),
+  estimatedMinutes: z.number().int().min(1).max(24 * 60).optional().nullable(),
   priority: z.nativeEnum(AssignmentPriority).default(AssignmentPriority.MEDIUM),
   status: z.nativeEnum(AssignmentStatus).default(AssignmentStatus.PENDING),
   repeatRule: z.nativeEnum(RepeatRule).default(RepeatRule.NONE),

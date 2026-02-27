@@ -160,6 +160,7 @@ model Assignment {
   title           String
   description     String?
   dueDate         DateTime
+  estimatedMinutes Int?
   priority        AssignmentPriority @default(MEDIUM)
   status          AssignmentStatus   @default(PENDING)
   repeatRule      RepeatRule         @default(NONE)

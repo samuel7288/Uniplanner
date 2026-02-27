@@ -26,9 +26,12 @@ type AssignmentWithRelations = Prisma.AssignmentGetPayload<{
   };
 }>;
 
-function mapAssignment(assignment: AssignmentWithRelations) {
+let assignmentEstimatedMinutesReady = false;
+
+function mapAssignment(assignment: AssignmentWithRelations, estimatedMinutes: number | null = null) {
   return {
     ...assignment,
+    estimatedMinutes,
     tags: assignment.assignmentTags.map((entry) => entry.tag.name),
   };
 }
@@ -81,7 +84,46 @@ async function syncTags(assignmentId: string, userId: string, tagNames: string[]
   }
 }
 
+async function ensureAssignmentEstimatedMinutesColumn(): Promise<void> {
+  if (assignmentEstimatedMinutesReady) return;
+
+  await prisma.$executeRawUnsafe(
+    `ALTER TABLE "Assignment" ADD COLUMN IF NOT EXISTS "estimatedMinutes" INTEGER`,
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "Assignment_userId_estimatedMinutes_idx" ON "Assignment"("userId", "estimatedMinutes")`,
+  );
+
+  assignmentEstimatedMinutesReady = true;
+}
+
+async function readEstimatedMinutesByIds(
+  ids: string[],
+): Promise<Map<string, number | null>> {
+  if (!ids.length) return new Map();
+
+  const rows = await prisma.$queryRaw<Array<{ id: string; estimatedMinutes: number | null }>>(
+    Prisma.sql`
+      SELECT a."id", a."estimatedMinutes"
+      FROM "Assignment" a
+      WHERE a."id" IN (${Prisma.join(ids)})
+    `,
+  );
+
+  return new Map(rows.map((row) => [row.id, row.estimatedMinutes ?? null]));
+}
+
+async function setEstimatedMinutes(assignmentId: string, estimatedMinutes: number | null): Promise<void> {
+  await prisma.$executeRaw`
+    UPDATE "Assignment"
+    SET "estimatedMinutes" = ${estimatedMinutes}
+    WHERE "id" = ${assignmentId}
+  `;
+}
+
 export async function listAssignmentsForUser(userId: string, query: ListAssignmentsQuery) {
+  await ensureAssignmentEstimatedMinutesColumn();
+
   const { status, courseId, q, dueFrom, dueTo, page, limit, sortBy, sortDir } = query;
 
   const normalizedPage = page ?? 1;
@@ -129,9 +171,12 @@ export async function listAssignmentsForUser(userId: string, query: ListAssignme
   ]);
 
   const totalPages = Math.ceil(total / normalizedLimit);
+  const estimatedMinutesById = await readEstimatedMinutesByIds(assignments.map((assignment) => assignment.id));
 
   return {
-    items: assignments.map(mapAssignment),
+    items: assignments.map((assignment) =>
+      mapAssignment(assignment, estimatedMinutesById.get(assignment.id) ?? null),
+    ),
     pagination: {
       page: normalizedPage,
       limit: normalizedLimit,
@@ -148,8 +193,10 @@ export async function listAssignmentsForUser(userId: string, query: ListAssignme
 }
 
 export async function getFocusAssignments(userId: string) {
+  await ensureAssignmentEstimatedMinutesColumn();
+
   const now = new Date();
-  return prisma.assignment.findMany({
+  const assignments = await prisma.assignment.findMany({
     where: {
       userId,
       dueDate: {
@@ -167,10 +214,18 @@ export async function getFocusAssignments(userId: string) {
       dueDate: "asc",
     },
   });
+
+  const estimatedMinutesById = await readEstimatedMinutesByIds(assignments.map((assignment) => assignment.id));
+  return assignments.map((assignment) => ({
+    ...assignment,
+    estimatedMinutes: estimatedMinutesById.get(assignment.id) ?? null,
+  }));
 }
 
 export async function createAssignment(userId: string, payload: CreateAssignmentBody) {
-  const { tags, attachmentLinks, ...assignmentPayload } = payload;
+  await ensureAssignmentEstimatedMinutesColumn();
+
+  const { tags, attachmentLinks, estimatedMinutes, ...assignmentPayload } = payload;
 
   if (assignmentPayload.courseId) {
     await ensureCourseBelongsToUser(assignmentPayload.courseId, userId);
@@ -192,6 +247,10 @@ export async function createAssignment(userId: string, payload: CreateAssignment
     },
   });
 
+  if (typeof estimatedMinutes === "number" || estimatedMinutes === null) {
+    await setEstimatedMinutes(assignment.id, estimatedMinutes ?? null);
+  }
+
   await syncTags(assignment.id, userId, tags);
 
   const hydrated = await prisma.assignment.findUniqueOrThrow({
@@ -206,10 +265,13 @@ export async function createAssignment(userId: string, payload: CreateAssignment
     },
   });
 
-  return mapAssignment(hydrated);
+  const estimatedMinutesById = await readEstimatedMinutesByIds([hydrated.id]);
+  return mapAssignment(hydrated, estimatedMinutesById.get(hydrated.id) ?? null);
 }
 
 export async function getAssignmentById(userId: string, assignmentId: string) {
+  await ensureAssignmentEstimatedMinutesColumn();
+
   const assignment = await prisma.assignment.findFirst({
     where: {
       id: assignmentId,
@@ -226,10 +288,13 @@ export async function getAssignmentById(userId: string, assignmentId: string) {
   });
 
   if (!assignment) throw createHttpError(404, "Assignment not found");
-  return mapAssignment(assignment);
+  const estimatedMinutesById = await readEstimatedMinutesByIds([assignment.id]);
+  return mapAssignment(assignment, estimatedMinutesById.get(assignment.id) ?? null);
 }
 
 export async function updateAssignment(userId: string, assignmentId: string, payload: UpdateAssignmentBody) {
+  await ensureAssignmentEstimatedMinutesColumn();
+
   const current = await prisma.assignment.findFirst({
     where: {
       id: assignmentId,
@@ -239,7 +304,7 @@ export async function updateAssignment(userId: string, assignmentId: string, pay
 
   if (!current) throw createHttpError(404, "Assignment not found");
 
-  const { tags, ...assignmentPayload } = payload;
+  const { tags, estimatedMinutes, ...assignmentPayload } = payload;
 
   if (assignmentPayload.courseId) {
     await ensureCourseBelongsToUser(assignmentPayload.courseId, userId);
@@ -260,6 +325,10 @@ export async function updateAssignment(userId: string, assignmentId: string, pay
     },
   });
 
+  if (typeof estimatedMinutes === "number" || estimatedMinutes === null) {
+    await setEstimatedMinutes(updated.id, estimatedMinutes ?? null);
+  }
+
   await syncTags(updated.id, userId, tags);
 
   const hydrated = await prisma.assignment.findUniqueOrThrow({
@@ -274,7 +343,8 @@ export async function updateAssignment(userId: string, assignmentId: string, pay
     },
   });
 
-  return mapAssignment(hydrated);
+  const estimatedMinutesById = await readEstimatedMinutesByIds([hydrated.id]);
+  return mapAssignment(hydrated, estimatedMinutesById.get(hydrated.id) ?? null);
 }
 
 export async function deleteAssignment(userId: string, assignmentId: string): Promise<void> {
