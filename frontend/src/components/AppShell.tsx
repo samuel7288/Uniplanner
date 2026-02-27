@@ -86,6 +86,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const [activeResultIndex, setActiveResultIndex] = useState(0);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState(0);
+  const headerRef = useRef<HTMLElement>(null);
   const paletteInputRef = useRef<HTMLInputElement>(null);
   const debouncedQuery = useDebounce(query);
 
@@ -132,6 +133,37 @@ export function AppShell({ children }: PropsWithChildren) {
     setSidebarOpen(false);
     setPaletteOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(false);
+      }
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const syncHeaderHeight = () => {
+      const height = Math.ceil(header.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--app-header-height", `${height}px`);
+    };
+
+    syncHeaderHeight();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(syncHeaderHeight) : null;
+    observer?.observe(header);
+    window.addEventListener("resize", syncHeaderHeight);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", syncHeaderHeight);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof user?.darkModePref === "boolean") {
@@ -390,7 +422,7 @@ export function AppShell({ children }: PropsWithChildren) {
       {/* Sidebar */}
       <aside
         className={clsx(
-          "fixed inset-y-0 left-0 z-40 w-[19rem] border-r border-ink-200 bg-gradient-to-b from-[#f8fbff]/95 to-[#eef4ff]/90 p-5 backdrop-blur transition-transform lg:static lg:w-80 lg:translate-x-0 dark:border-ink-800 dark:from-ink-900/95 dark:to-ink-950/90",
+          "fixed inset-y-0 left-0 z-40 w-[19rem] border-r border-ink-200 bg-gradient-to-b from-[#f8fbff]/95 to-[#eef4ff]/90 p-5 backdrop-blur transition-transform lg:static lg:w-72 lg:translate-x-0 dark:border-ink-800 dark:from-ink-900/95 dark:to-ink-950/90",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -442,7 +474,10 @@ export function AppShell({ children }: PropsWithChildren) {
       {/* Main content area */}
       <div className="flex min-h-screen flex-1 flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-20 border-b border-ink-200/80 bg-white/80 px-4 py-3 backdrop-blur md:px-6 dark:border-ink-800/80 dark:bg-[var(--surface)]/80">
+        <header
+          ref={headerRef}
+          className="sticky top-0 z-20 border-b border-ink-200/80 bg-white/80 px-4 py-3 backdrop-blur md:px-6 dark:border-ink-800/80 dark:bg-[var(--surface)]/80"
+        >
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.15em] text-ink-500 dark:text-ink-400">
@@ -541,12 +576,12 @@ export function AppShell({ children }: PropsWithChildren) {
       {/* Search palette */}
       {paletteOpen && (
         <div
-          className="fixed inset-0 z-50 bg-[#0f2439]/45 p-4 backdrop-blur-sm dark:bg-black/60 md:p-8"
+          className="fixed inset-0 z-50 bg-[#0f2439]/45 p-2 backdrop-blur-sm dark:bg-black/60 md:p-8"
           role="presentation"
           onClick={() => setPaletteOpen(false)}
         >
           <section
-            className="mx-auto flex h-[min(80vh,760px)] w-full max-w-3xl flex-col rounded-3xl border border-ink-200 bg-white shadow-panel dark:border-ink-700 dark:bg-[var(--surface)]"
+            className="mx-auto flex h-[min(90vh,760px)] w-full max-w-3xl flex-col rounded-3xl border border-ink-200 bg-white shadow-panel dark:border-ink-700 dark:bg-[var(--surface)]"
             role="dialog"
             aria-modal="true"
             aria-label="Busqueda global"
@@ -562,6 +597,8 @@ export function AppShell({ children }: PropsWithChildren) {
                 placeholder="Busca materias, tareas o examenes..."
                 className="w-full bg-transparent text-sm text-ink-900 outline-none placeholder:text-ink-500 dark:text-ink-100 dark:placeholder:text-ink-500"
                 aria-label="Buscar en UniPlanner"
+                inputMode="search"
+                enterKeyHint="search"
               />
               <button
                 type="button"
@@ -584,7 +621,10 @@ export function AppShell({ children }: PropsWithChildren) {
                 <option value="exam">Examenes</option>
               </select>
               <p className="text-xs text-ink-500 dark:text-ink-400">
-                <span className="font-semibold text-ink-700 dark:text-ink-300">Atajos:</span> flechas para navegar, enter para abrir
+                <span className="hidden sm:inline">
+                  <span className="font-semibold text-ink-700 dark:text-ink-300">Atajos:</span> flechas para navegar, enter para abrir
+                </span>
+                <span className="sm:hidden">Toca un resultado para abrir</span>
               </p>
             </div>
 

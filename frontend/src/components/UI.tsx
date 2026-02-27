@@ -37,7 +37,7 @@ export function PageTitle({
             {overline}
           </p>
         )}
-        <h1 className="font-display text-[1.7rem] font-semibold leading-tight text-ink-900 dark:text-ink-100 md:text-[2rem]">
+        <h1 className="font-display text-2xl font-semibold leading-tight text-ink-900 dark:text-ink-100 md:text-3xl">
           {title}
         </h1>
         {subtitle && (
@@ -60,7 +60,7 @@ export function Card({
   return (
     <section
       className={clsx(
-        "surface-border surface-elevated rounded-2xl p-4 md:p-5",
+        "surface-border surface-elevated rounded-2xl p-4 md:p-6",
         tone === "brand" &&
           "border-brand-100 bg-gradient-to-b from-brand-50/80 to-white dark:border-brand-700/40 dark:from-brand-700/15 dark:to-[var(--surface)]",
         tone === "success" &&
@@ -101,8 +101,8 @@ export function Field({
 }
 
 const baseFieldClass =
-  "w-full rounded-xl border border-ink-200 bg-white/90 px-3 py-2.5 text-[0.94rem] text-ink-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 placeholder:text-ink-400 " +
-  "dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-100 dark:placeholder:text-ink-500 dark:focus:border-brand-500 dark:focus:ring-brand-700/30";
+  "w-full rounded-xl border border-ink-200 bg-white/90 px-3 py-2.5 text-sm text-ink-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100 placeholder:text-ink-400 aria-[invalid=true]:border-danger-500 aria-[invalid=true]:bg-danger-50/50 focus:aria-[invalid=true]:border-danger-500 focus:aria-[invalid=true]:ring-danger-100 " +
+  "dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-100 dark:placeholder:text-ink-500 dark:focus:border-brand-500 dark:focus:ring-brand-700/30 dark:aria-[invalid=true]:border-danger-500 dark:aria-[invalid=true]:bg-danger-900/20 dark:focus:aria-[invalid=true]:ring-danger-700/40";
 
 export const TextInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   (props, ref) => {
@@ -169,7 +169,7 @@ export function Badge({
   return (
     <span
       className={clsx(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[0.69rem] font-semibold uppercase tracking-wide",
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide",
         tone === "default" &&
           "border-ink-200 bg-white text-ink-600 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-300",
         tone === "brand" &&

@@ -3,7 +3,7 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { CalendarDaysIcon, ListBulletIcon, Squares2X2Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -160,6 +160,7 @@ export function ExamsPage() {
     id: null,
     title: "",
   });
+  const formAnchorRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -373,6 +374,10 @@ export function ExamsPage() {
         : "text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200",
     );
 
+  function scrollToForm() {
+    formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div className="space-y-6">
       <PageTitle
@@ -385,6 +390,7 @@ export function ExamsPage() {
 
       <div className="grid gap-4 lg:grid-cols-[380px,1fr]">
         <Card>
+          <div ref={formAnchorRef} className="scroll-mt-28" />
           <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">
             {editingId ? "Editar examen" : "Nuevo examen"}
           </h2>
@@ -601,8 +607,13 @@ export function ExamsPage() {
                   {exams.length === 0 && (
                     <EmptyState
                       context="exams"
-                      title="No hay examenes"
-                      description="Registra tu primera evaluacion para activar recordatorios."
+                      title="Sin examenes"
+                      description="Registra tu primer examen para activar recordatorios."
+                      action={
+                        <Button type="button" onClick={scrollToForm}>
+                          Crear examen
+                        </Button>
+                      }
                     />
                   )}
                 </div>
@@ -664,8 +675,13 @@ export function ExamsPage() {
                     <div className="col-span-full">
                       <EmptyState
                         context="exams"
-                        title="No hay examenes"
-                        description="Registra tu primera evaluacion para activar recordatorios."
+                        title="Sin examenes"
+                        description="Registra tu primer examen para activar recordatorios."
+                        action={
+                          <Button type="button" onClick={scrollToForm}>
+                            Crear examen
+                          </Button>
+                        }
                       />
                     </div>
                   )}
@@ -676,8 +692,13 @@ export function ExamsPage() {
                 {exams.length === 0 ? (
                   <EmptyState
                     context="exams"
-                    title="No hay examenes"
-                    description="Registra tu primera evaluacion para activar recordatorios."
+                    title="Sin examenes"
+                    description="Registra tu primer examen para activar recordatorios."
+                    action={
+                      <Button type="button" onClick={scrollToForm}>
+                        Crear examen
+                      </Button>
+                    }
                   />
                 ) : (
                   <ol className="relative ml-2 space-y-3 border-l border-ink-200 pl-4 dark:border-ink-700">
@@ -748,7 +769,11 @@ export function ExamsPage() {
       <ConfirmDialog
         open={confirmDelete.open}
         title="Eliminar examen"
-        description={`Confirmas que deseas eliminar "${confirmDelete.title}"? Esta accion no se puede deshacer.`}
+        description={
+          <span>
+            Confirmas eliminar <strong>"{confirmDelete.title}"</strong>? Esta accion no se puede deshacer.
+          </span>
+        }
         onConfirm={async () => {
           if (confirmDelete.id) await remove(confirmDelete.id);
           setConfirmDelete({ open: false, id: null, title: "" });

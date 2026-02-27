@@ -229,45 +229,47 @@ export function CalendarPage() {
       {error && <Alert tone="error" message={error} />}
 
       <Card>
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label
-              className="mb-1 block text-sm font-medium text-ink-700 dark:text-ink-300"
-              htmlFor="courseFilter"
-            >
-              Filtrar por materia
-            </label>
-            <SelectInput
-              id="courseFilter"
-              value={selectedCourseId}
-              onChange={(event) => setSelectedCourseId(event.target.value)}
-            >
-              <option value="">Todas</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.name}
-                </option>
-              ))}
-            </SelectInput>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {eventTypes.map((type) => (
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr),auto] sm:items-end">
+          <div className="grid gap-3">
+            <div>
               <label
-                key={type}
-                className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300"
+                className="mb-1 block text-sm font-medium text-ink-700 dark:text-ink-300"
+                htmlFor="courseFilter"
               >
-                <input
-                  type="checkbox"
-                  checked={selectedTypes.includes(type)}
-                  onChange={() => toggleType(type)}
-                />
-                <span className="capitalize">{type}</span>
+                Filtrar por materia
               </label>
-            ))}
+              <SelectInput
+                id="courseFilter"
+                value={selectedCourseId}
+                onChange={(event) => setSelectedCourseId(event.target.value)}
+              >
+                <option value="">Todas</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </SelectInput>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {eventTypes.map((type) => (
+                <label
+                  key={type}
+                  className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(type)}
+                    onChange={() => toggleType(type)}
+                  />
+                  <span className="capitalize">{type}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
-          <Button type="button" onClick={() => void downloadICS()}>
+          <Button type="button" className="w-full sm:w-auto" onClick={() => void downloadICS()}>
             Descargar .ics
           </Button>
         </div>

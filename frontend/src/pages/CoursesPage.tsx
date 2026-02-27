@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { api, getErrorMessage } from "../lib/api";
 import type { Course, Grade } from "../lib/types";
-import { Alert, Button, Card, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
+import { Alert, Button, Card, EmptyState, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 
 type CourseDetail = Course & {
@@ -31,6 +31,7 @@ export function CoursesPage() {
   const [target, setTarget] = useState("7");
   const [error, setError] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const formAnchorRef = useRef<HTMLDivElement>(null);
 
   const [courseForm, setCourseForm] = useState({
     name: "",
@@ -168,6 +169,10 @@ export function CoursesPage() {
     }
   }
 
+  function scrollToCourseForm() {
+    formAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <div className="space-y-6">
       <PageTitle title="Materias" subtitle="CRUD de materias, horario por materia y analitica de notas" />
@@ -176,6 +181,7 @@ export function CoursesPage() {
 
       <div className="grid gap-4 lg:grid-cols-[380px,1fr]">
         <Card>
+          <div ref={formAnchorRef} className="scroll-mt-28" />
           <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">Nueva materia</h2>
           <form className="mt-3 grid gap-3" onSubmit={createCourse}>
             <Field label="Nombre">
@@ -223,28 +229,52 @@ export function CoursesPage() {
             <Button type="submit">Guardar materia</Button>
           </form>
 
-          <div className="mt-6 space-y-2">
+          <div className="mt-6 space-y-2 max-h-[calc(100vh-16rem)] overflow-y-auto pr-1">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">Tus materias</h3>
-            {courses.map((course) => (
-              <button
-                key={course.id}
-                type="button"
-                onClick={() => setSelectedCourseId(course.id)}
-                className={`w-full rounded-lg border p-3 text-left text-sm ${
-                  selectedCourseId === course.id
-                    ? "border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-400 dark:bg-brand-700/15 dark:text-brand-300"
-                    : "border-ink-200 hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800/60"
-                }`}
-              >
-                <p className="font-semibold text-ink-800 dark:text-ink-200">{course.name}</p>
-                <p className="text-xs text-ink-500 dark:text-ink-400">{course.code}</p>
-              </button>
-            ))}
+            {courses.length === 0 ? (
+              <EmptyState
+                context="courses"
+                title="Sin materias"
+                description="Crea tu primera materia para empezar."
+                action={
+                  <Button type="button" onClick={scrollToCourseForm}>
+                    Crear materia
+                  </Button>
+                }
+              />
+            ) : (
+              courses.map((course) => (
+                <button
+                  key={course.id}
+                  type="button"
+                  onClick={() => setSelectedCourseId(course.id)}
+                  className={`w-full rounded-lg border p-3 text-left text-sm ${
+                    selectedCourseId === course.id
+                      ? "border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-400 dark:bg-brand-700/15 dark:text-brand-300"
+                      : "border-ink-200 hover:bg-ink-50 dark:border-ink-700 dark:hover:bg-ink-800/60"
+                  }`}
+                >
+                  <p className="font-semibold text-ink-800 dark:text-ink-200">{course.name}</p>
+                  <p className="text-xs text-ink-500 dark:text-ink-400">{course.code}</p>
+                </button>
+              ))
+            )}
           </div>
         </Card>
 
         <Card>
-          {!selectedCourse && <p className="text-sm text-ink-500 dark:text-ink-400">Selecciona una materia.</p>}
+          {!selectedCourse && (
+            <EmptyState
+              context="courses"
+              title="Sin materia seleccionada"
+              description="Selecciona una materia de la lista o crea una nueva."
+              action={
+                <Button type="button" onClick={scrollToCourseForm}>
+                  Crear materia
+                </Button>
+              }
+            />
+          )}
           {selectedCourse && (
             <div className="space-y-5">
               <div>

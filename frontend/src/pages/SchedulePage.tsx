@@ -1,3 +1,4 @@
+import { Bars3BottomLeftIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { DragEvent, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -58,8 +59,20 @@ export function SchedulePage() {
   const [updatingId, setUpdatingId] = useState("");
 
   const today = useMemo(() => new Date().getDay(), []);
+  const [mobileDay, setMobileDay] = useState(today);
   const currentHour = useMemo(() => new Date().getHours(), []);
   const hours = useMemo(() => Array.from({ length: 14 }, (_, index) => index + 7), []);
+  const mobileSessions = useMemo(
+    () =>
+      sessions
+        .filter((session) => session.dayOfWeek === mobileDay)
+        .sort((a, b) => {
+          const first = parseTime(a.startTime);
+          const second = parseTime(b.startTime);
+          return first.hour * 60 + first.minute - (second.hour * 60 + second.minute);
+        }),
+    [mobileDay, sessions],
+  );
 
   async function load() {
     setLoading(true);
@@ -176,118 +189,193 @@ export function SchedulePage() {
 
       {error && <Alert tone="error" message={error} />}
 
-      <Card className="overflow-x-auto p-0">
-        <table className="w-full min-w-[880px] border-collapse">
-          <thead>
-            <tr className="sticky top-0 z-10 text-left text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">
-              <th className="border border-ink-200 bg-[var(--surface-soft)] px-3 py-2 dark:border-ink-700 dark:bg-ink-900/50">
-                Hora
-              </th>
-              {dayLabels.map((label, dayIndex) => (
-                <th
-                  key={label}
-                  className={clsx(
-                    "border border-ink-200 px-3 py-2 dark:border-ink-700",
-                    dayIndex === today
-                      ? "bg-brand-50/60 font-bold text-brand-700 dark:bg-brand-700/10 dark:text-brand-400"
-                      : "bg-[var(--surface-soft)] dark:bg-ink-900/50",
-                  )}
-                >
-                  {label}
-                  {dayIndex === today && (
-                    <span className="ml-1 text-[0.6rem] font-normal text-brand-500 dark:text-brand-400">
-                      hoy
-                    </span>
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {hours.map((hour) => (
-              <tr
-                key={hour}
-                className={clsx(
-                  "align-top",
-                  hour === currentHour && "border-l-2 border-l-brand-400 dark:border-l-brand-500",
-                )}
-              >
-                <td
-                  className={clsx(
-                    "border border-ink-200 px-3 py-3 text-sm font-semibold text-ink-600 dark:border-ink-700 dark:text-ink-400",
-                    hour === currentHour &&
-                      "bg-brand-50/40 text-brand-700 dark:bg-brand-700/10 dark:text-brand-400",
-                  )}
-                >
-                  {`${hour}:00`}
-                </td>
-                {dayLabels.map((_, dayIndex) => {
-                  const session = findSession(dayIndex, hour);
-                  const isDropTarget = Boolean(draggingId);
-                  return (
-                    <td
-                      key={`${dayIndex}-${hour}`}
-                      onDragOver={(event) => {
-                        if (isDropTarget) event.preventDefault();
-                      }}
-                      onDrop={(event) => onCellDrop(event, dayIndex, hour)}
-                      className={clsx(
-                        viewMode === "compact" ? "h-14" : "h-20",
-                        "border border-ink-200 px-2 py-2 text-sm transition dark:border-ink-700",
-                        !session && "hover:bg-brand-50/20 dark:hover:bg-brand-700/5",
-                        dayIndex === today && !session && "bg-brand-50/20 dark:bg-brand-700/5",
-                        isDropTarget && !session && "ring-1 ring-inset ring-brand-200 dark:ring-brand-700/50",
-                      )}
-                    >
-                      {session ? (
-                        <div className="group relative h-full">
-                          <div
-                            draggable
-                            onDragStart={(event) => {
-                              setDraggingId(session.id);
-                              event.dataTransfer.setData("text/session-id", session.id);
-                            }}
-                            onDragEnd={() => setDraggingId("")}
-                            className={clsx(
-                              "h-full cursor-grab rounded-xl p-2.5 text-white shadow-soft transition hover:opacity-95 active:cursor-grabbing",
-                              updatingId === session.id && "animate-pulse-soft opacity-70",
-                            )}
-                            style={{ backgroundColor: session.color || "#2563eb" }}
-                            title="Arrastra para mover esta sesion"
-                            aria-label={`Sesion ${session.courseName} ${session.startTime}-${session.endTime}`}
-                          >
-                            <p className={clsx("font-semibold leading-tight", viewMode === "compact" ? "text-xs" : "text-sm")}>
-                              {viewMode === "compact" ? session.code : session.courseName}
-                            </p>
-                            {viewMode === "expanded" && (
-                              <>
-                                <p className="mt-1 text-xs opacity-90">
-                                  {session.startTime} - {session.endTime}
-                                </p>
-                                <p className="text-xs opacity-75">{session.room || session.modality}</p>
-                              </>
-                            )}
-                          </div>
+      <div className="space-y-3 md:hidden">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {dayLabels.map((label, dayIndex) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setMobileDay(dayIndex)}
+              className={clsx(
+                "shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition",
+                mobileDay === dayIndex
+                  ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-700/20 dark:text-brand-300"
+                  : "border-ink-200 bg-white text-ink-600 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300",
+              )}
+            >
+              {label}
+              {dayIndex === today && <span className="ml-1 text-[0.65rem] text-brand-500 dark:text-brand-400">hoy</span>}
+            </button>
+          ))}
+        </div>
+        <Card>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+              {dayLabels[mobileDay]}
+            </h2>
+            <Badge tone="brand">{mobileSessions.length} bloques</Badge>
+          </div>
 
-                          <div className="pointer-events-none absolute -top-2 left-1/2 z-20 hidden -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-xl border border-ink-200 bg-white px-3 py-2 text-xs shadow-panel group-hover:block dark:border-ink-700 dark:bg-[var(--surface)]">
-                            <p className="font-semibold text-ink-800 dark:text-ink-200">{session.courseName}</p>
-                            <p className="text-ink-600 dark:text-ink-400">
-                              {session.startTime} - {session.endTime}
-                            </p>
-                            {session.room && <p className="text-ink-500 dark:text-ink-400">{session.room}</p>}
-                            <p className="text-ink-500 dark:text-ink-400">
-                              {session.modality === "ONLINE" ? "Online" : "Presencial"}
-                            </p>
-                          </div>
-                        </div>
-                      ) : null}
-                    </td>
-                  );
-                })}
+          {mobileSessions.length === 0 ? (
+            <div className="mt-3">
+              <EmptyState
+                context="schedule"
+                title="Sin sesiones para este dia"
+                description="Selecciona otro dia o agrega bloques desde la pagina de Materias."
+              />
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {mobileSessions.map((session) => (
+                <article
+                  key={session.id}
+                  className="rounded-xl border border-ink-200 bg-white/85 p-3 dark:border-ink-700 dark:bg-[var(--surface)]/70"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-ink-900 dark:text-ink-100">{session.courseName}</p>
+                      <p className="text-xs text-ink-600 dark:text-ink-400">
+                        {session.startTime} - {session.endTime}
+                      </p>
+                    </div>
+                    <Badge tone={session.modality === "ONLINE" ? "brand" : "success"}>
+                      {session.room || session.modality}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-500 dark:text-ink-400">{session.code}</p>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <p className="mt-3 text-xs text-ink-500 dark:text-ink-400">
+            Vista mobile por dia. Para reprogramar bloques usa la tabla semanal en desktop/tablet.
+          </p>
+        </Card>
+      </div>
+
+      <Card className="hidden p-0 md:block">
+        <div className="flex items-center justify-end border-b border-ink-200 px-3 py-2 text-xs text-ink-500 dark:border-ink-700 dark:text-ink-400 xl:hidden">
+          Desliza horizontalmente para ver toda la semana
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[880px] border-collapse">
+            <thead>
+              <tr className="sticky top-0 z-10 text-left text-xs uppercase tracking-wide text-ink-500 dark:text-ink-400">
+                <th className="border border-ink-200 bg-[var(--surface-soft)] px-3 py-2 dark:border-ink-700 dark:bg-ink-900/50">
+                  Hora
+                </th>
+                {dayLabels.map((label, dayIndex) => (
+                  <th
+                    key={label}
+                    className={clsx(
+                      "border border-ink-200 px-3 py-2 dark:border-ink-700",
+                      dayIndex === today
+                        ? "bg-brand-50/60 font-bold text-brand-700 dark:bg-brand-700/10 dark:text-brand-400"
+                        : "bg-[var(--surface-soft)] dark:bg-ink-900/50",
+                    )}
+                  >
+                    {label}
+                    {dayIndex === today && (
+                      <span className="ml-1 text-[0.6rem] font-normal text-brand-500 dark:text-brand-400">
+                        hoy
+                      </span>
+                    )}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {hours.map((hour) => (
+                <tr
+                  key={hour}
+                  className={clsx(
+                    "align-top",
+                    hour === currentHour && "border-l-2 border-l-brand-400 dark:border-l-brand-500",
+                  )}
+                >
+                  <td
+                    className={clsx(
+                      "border border-ink-200 px-3 py-3 text-sm font-semibold text-ink-600 dark:border-ink-700 dark:text-ink-400",
+                      hour === currentHour &&
+                        "bg-brand-50/40 text-brand-700 dark:bg-brand-700/10 dark:text-brand-400",
+                    )}
+                  >
+                    {`${hour}:00`}
+                  </td>
+                  {dayLabels.map((_, dayIndex) => {
+                    const session = findSession(dayIndex, hour);
+                    const isDropTarget = Boolean(draggingId);
+                    return (
+                      <td
+                        key={`${dayIndex}-${hour}`}
+                        onDragOver={(event) => {
+                          if (isDropTarget) event.preventDefault();
+                        }}
+                        onDrop={(event) => onCellDrop(event, dayIndex, hour)}
+                        className={clsx(
+                          viewMode === "compact" ? "h-14" : "h-20",
+                          "border border-ink-200 px-2 py-2 text-sm transition dark:border-ink-700",
+                          !session && "hover:bg-brand-50/20 dark:hover:bg-brand-700/5",
+                          dayIndex === today && !session && "bg-brand-50/20 dark:bg-brand-700/5",
+                          isDropTarget &&
+                            !session &&
+                            "ring-1 ring-inset ring-brand-200 dark:ring-brand-700/50",
+                        )}
+                      >
+                        {session ? (
+                          <div className="group relative h-full">
+                            <div
+                              draggable
+                              onDragStart={(event) => {
+                                setDraggingId(session.id);
+                                event.dataTransfer.setData("text/session-id", session.id);
+                              }}
+                              onDragEnd={() => setDraggingId("")}
+                              className={clsx(
+                                "relative h-full cursor-grab rounded-xl p-2.5 text-white shadow-soft transition hover:opacity-95 active:cursor-grabbing",
+                                updatingId === session.id && "animate-pulse-soft opacity-70",
+                              )}
+                              style={{ backgroundColor: session.color || "#2563eb" }}
+                              title="Arrastra para mover esta sesion"
+                              aria-label={`Sesion ${session.courseName} ${session.startTime}-${session.endTime}`}
+                            >
+                              <span className="pointer-events-none absolute right-1.5 top-1.5 opacity-0 transition-opacity group-hover:opacity-70">
+                                <Bars3BottomLeftIcon className="size-3 text-white/90" aria-hidden="true" />
+                              </span>
+                              <p className={clsx("font-semibold leading-tight", viewMode === "compact" ? "text-xs" : "text-sm")}>
+                                {viewMode === "compact" ? session.code : session.courseName}
+                              </p>
+                              {viewMode === "expanded" && (
+                                <>
+                                  <p className="mt-1 text-xs opacity-90">
+                                    {session.startTime} - {session.endTime}
+                                  </p>
+                                  <p className="text-xs opacity-75">{session.room || session.modality}</p>
+                                </>
+                              )}
+                            </div>
+
+                            <div className="pointer-events-none absolute -top-2 left-1/2 z-20 hidden -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-xl border border-ink-200 bg-white px-3 py-2 text-xs shadow-panel group-hover:block dark:border-ink-700 dark:bg-[var(--surface)]">
+                              <p className="font-semibold text-ink-800 dark:text-ink-200">{session.courseName}</p>
+                              <p className="text-ink-600 dark:text-ink-400">
+                                {session.startTime} - {session.endTime}
+                              </p>
+                              {session.room && <p className="text-ink-500 dark:text-ink-400">{session.room}</p>}
+                              <p className="text-ink-500 dark:text-ink-400">
+                                {session.modality === "ONLINE" ? "Online" : "Presencial"}
+                              </p>
+                            </div>
+                          </div>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <Card>
