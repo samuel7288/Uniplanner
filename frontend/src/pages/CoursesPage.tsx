@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { ImportCoursesModal } from "../components/ImportCoursesModal";
+import { ImportSchedulePdfModal } from "../components/ImportSchedulePdfModal";
 import { Alert, Button, Card, EmptyState, Field, PageTitle, SelectInput, TextInput } from "../components/UI";
 import { api, getErrorMessage, gradeCategoriesApi } from "../lib/api";
 import type { Course, Grade, GradeCategory } from "../lib/types";
@@ -46,6 +47,7 @@ export function CoursesPage() {
   const [categories, setCategories] = useState<GradeCategory[]>([]);
   const [projection, setProjection] = useState<GradeProjection | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [pdfImportModalOpen, setPdfImportModalOpen] = useState(false);
   const [target, setTarget] = useState("7");
   const [error, setError] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -407,9 +409,14 @@ export function CoursesPage() {
           <div ref={formAnchorRef} className="scroll-mt-28" />
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-ink-900 dark:text-ink-100">Nueva materia</h2>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setImportModalOpen(true)}>
-              Importar Excel
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setImportModalOpen(true)}>
+                Importar Excel
+              </Button>
+              <Button type="button" variant="subtle" size="sm" onClick={() => setPdfImportModalOpen(true)}>
+                Importar PDF
+              </Button>
+            </div>
           </div>
           <form className="mt-3 grid gap-3" onSubmit={createCourse}>
             <Field label="Nombre">
@@ -682,7 +689,11 @@ export function CoursesPage() {
         onCancel={() => setConfirmDeleteOpen(false)}
       />
       <ImportCoursesModal open={importModalOpen} onClose={() => setImportModalOpen(false)} onImported={handleImportedCourses} />
+      <ImportSchedulePdfModal
+        open={pdfImportModalOpen}
+        onClose={() => setPdfImportModalOpen(false)}
+        onImported={handleImportedCourses}
+      />
     </div>
   );
 }
-
