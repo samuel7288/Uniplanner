@@ -7,5 +7,12 @@ import { startNotificationWorker } from "./workers/notificationWorker";
 app.listen(env.BACKEND_PORT, () => {
   logger.info({ port: env.BACKEND_PORT }, "UniPlanner API started");
   startScheduler();
-  startNotificationWorker();
+  try {
+    startNotificationWorker();
+  } catch (err) {
+    logger.error(
+      { err },
+      "Notification worker failed to start — Redis may be unavailable. Notifications will be degraded.",
+    );
+  }
 });
