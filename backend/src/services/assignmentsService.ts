@@ -1,6 +1,7 @@
 import { AssignmentStatus, Prisma } from "@prisma/client";
 import { endOfDay, parseISO, startOfDay } from "date-fns";
 import { prisma } from "../lib/prisma";
+import { notifyStudyGroupMembersForEvaluation } from "./studyGroupsService";
 import type {
   CreateAssignmentBody,
   ListAssignmentsQuery,
@@ -26,8 +27,6 @@ type AssignmentWithRelations = Prisma.AssignmentGetPayload<{
   };
 }>;
 
-let assignmentEstimatedMinutesReady = false;
-
 function mapAssignment(assignment: AssignmentWithRelations, estimatedMinutes: number | null = null) {
   return {
     ...assignment,
@@ -44,7 +43,7 @@ async function ensureCourseBelongsToUser(courseId: string, userId: string): Prom
     },
   });
 
-  if (!course) throw createHttpError(400, "Invalid courseId");
+  if (!course) throw createHttpError(404, "Course not found");
 }
 
 async function syncTags(assignmentId: string, userId: string, tagNames: string[] | undefined): Promise<void> {
@@ -60,41 +59,30 @@ async function syncTags(assignmentId: string, userId: string, tagNames: string[]
     },
   });
 
-  for (const tagName of normalized) {
-    const tag = await prisma.tag.upsert({
-      where: {
-        userId_name: {
+  await Promise.all(
+    normalized.map(async (tagName) => {
+      const tag = await prisma.tag.upsert({
+        where: {
+          userId_name: {
+            userId,
+            name: tagName,
+          },
+        },
+        create: {
           userId,
           name: tagName,
         },
-      },
-      create: {
-        userId,
-        name: tagName,
-      },
-      update: {},
-    });
+        update: {},
+      });
 
-    await prisma.assignmentTag.create({
-      data: {
-        assignmentId,
-        tagId: tag.id,
-      },
-    });
-  }
-}
-
-async function ensureAssignmentEstimatedMinutesColumn(): Promise<void> {
-  if (assignmentEstimatedMinutesReady) return;
-
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE "Assignment" ADD COLUMN IF NOT EXISTS "estimatedMinutes" INTEGER`,
+      await prisma.assignmentTag.create({
+        data: {
+          assignmentId,
+          tagId: tag.id,
+        },
+      });
+    }),
   );
-  await prisma.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS "Assignment_userId_estimatedMinutes_idx" ON "Assignment"("userId", "estimatedMinutes")`,
-  );
-
-  assignmentEstimatedMinutesReady = true;
 }
 
 async function readEstimatedMinutesByIds(
@@ -102,28 +90,31 @@ async function readEstimatedMinutesByIds(
 ): Promise<Map<string, number | null>> {
   if (!ids.length) return new Map();
 
-  const rows = await prisma.$queryRaw<Array<{ id: string; estimatedMinutes: number | null }>>(
-    Prisma.sql`
-      SELECT a."id", a."estimatedMinutes"
-      FROM "Assignment" a
-      WHERE a."id" IN (${Prisma.join(ids)})
-    `,
-  );
+  const rows = await prisma.assignment.findMany({
+    where: {
+      id: { in: ids },
+    },
+    select: {
+      id: true,
+      estimatedMinutes: true,
+    },
+  });
 
   return new Map(rows.map((row) => [row.id, row.estimatedMinutes ?? null]));
 }
 
 async function setEstimatedMinutes(assignmentId: string, estimatedMinutes: number | null): Promise<void> {
-  await prisma.$executeRaw`
-    UPDATE "Assignment"
-    SET "estimatedMinutes" = ${estimatedMinutes}
-    WHERE "id" = ${assignmentId}
-  `;
+  await prisma.assignment.update({
+    where: {
+      id: assignmentId,
+    },
+    data: {
+      estimatedMinutes,
+    },
+  });
 }
 
 export async function listAssignmentsForUser(userId: string, query: ListAssignmentsQuery) {
-  await ensureAssignmentEstimatedMinutesColumn();
-
   const { status, courseId, q, dueFrom, dueTo, page, limit, sortBy, sortDir } = query;
 
   const normalizedPage = page ?? 1;
@@ -193,8 +184,6 @@ export async function listAssignmentsForUser(userId: string, query: ListAssignme
 }
 
 export async function getFocusAssignments(userId: string) {
-  await ensureAssignmentEstimatedMinutesColumn();
-
   const now = new Date();
   const assignments = await prisma.assignment.findMany({
     where: {
@@ -223,8 +212,6 @@ export async function getFocusAssignments(userId: string) {
 }
 
 export async function createAssignment(userId: string, payload: CreateAssignmentBody) {
-  await ensureAssignmentEstimatedMinutesColumn();
-
   const { tags, attachmentLinks, estimatedMinutes, ...assignmentPayload } = payload;
 
   if (assignmentPayload.courseId) {
@@ -265,13 +252,20 @@ export async function createAssignment(userId: string, payload: CreateAssignment
     },
   });
 
+  await notifyStudyGroupMembersForEvaluation(
+    userId,
+    hydrated.courseId ?? null,
+    hydrated.title,
+    "assignment",
+  ).catch(() => {
+    // Notification fan-out should not block assignment creation.
+  });
+
   const estimatedMinutesById = await readEstimatedMinutesByIds([hydrated.id]);
   return mapAssignment(hydrated, estimatedMinutesById.get(hydrated.id) ?? null);
 }
 
 export async function getAssignmentById(userId: string, assignmentId: string) {
-  await ensureAssignmentEstimatedMinutesColumn();
-
   const assignment = await prisma.assignment.findFirst({
     where: {
       id: assignmentId,
@@ -293,8 +287,6 @@ export async function getAssignmentById(userId: string, assignmentId: string) {
 }
 
 export async function updateAssignment(userId: string, assignmentId: string, payload: UpdateAssignmentBody) {
-  await ensureAssignmentEstimatedMinutesColumn();
-
   const current = await prisma.assignment.findFirst({
     where: {
       id: assignmentId,

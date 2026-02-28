@@ -30,6 +30,15 @@ const COOKIE_OPTIONS = {
   maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000,
 };
 
+function isValidTimezone(timeZone: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const registerSchema = requestSchema({
   body: z.object({
     email: z.string().email(),
@@ -37,7 +46,7 @@ const registerSchema = requestSchema({
     name: z.string().min(2),
     career: z.string().optional(),
     university: z.string().optional(),
-    timezone: z.string().optional(),
+    timezone: z.string().refine(isValidTimezone, { message: "Invalid timezone" }).optional(),
   }),
 });
 
@@ -105,7 +114,7 @@ router.post(
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       auditAuth(req, "warn", "register_duplicate_email", { email });
-      res.status(200).json({ message: "If registration is possible, please sign in." });
+      res.status(201).json({ message: "If registration is possible, please sign in." });
       return;
     }
 
@@ -182,11 +191,13 @@ router.post(
     }
 
     const tokenHash = hashToken(refreshToken);
-    const existing = await prisma.refreshToken.findFirst({
-      where: { tokenHash, userId: payload.sub, revokedAt: null, expiresAt: { gt: new Date() } },
+    const revokedAt = new Date();
+    const { count: revoked } = await prisma.refreshToken.updateMany({
+      where: { tokenHash, userId: payload.sub, revokedAt: null, expiresAt: { gt: revokedAt } },
+      data: { revokedAt },
     });
 
-    if (!existing) {
+    if (!revoked) {
       auditAuth(req, "warn", "refresh_revoked_or_expired", { userId: payload.sub });
       res.clearCookie(REFRESH_COOKIE, { path: COOKIE_OPTIONS.path });
       res.status(401).json({ message: "Refresh token expired or revoked" });
@@ -204,9 +215,6 @@ router.post(
       res.status(401).json({ message: "User not found" });
       return;
     }
-
-    // Rotate: revoke old, issue new
-    await prisma.refreshToken.update({ where: { id: existing.id }, data: { revokedAt: new Date() } });
 
     const tokens = await issueTokens(user, res);
     auditAuth(req, "info", "refresh_success", { userId: user.id, email: user.email });

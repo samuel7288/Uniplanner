@@ -39,11 +39,19 @@ export function createRefreshToken(userId: string): string {
 }
 
 export function verifyAccessToken(token: string): AccessTokenPayload {
-  return jwt.verify(token, env.JWT_ACCESS_SECRET as Secret) as AccessTokenPayload;
+  const payload = jwt.verify(token, env.JWT_ACCESS_SECRET as Secret) as AccessTokenPayload;
+  if (payload.type !== "access") {
+    throw new Error("Invalid token type");
+  }
+  return payload;
 }
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
-  return jwt.verify(token, env.JWT_REFRESH_SECRET as Secret) as RefreshTokenPayload;
+  const payload = jwt.verify(token, env.JWT_REFRESH_SECRET as Secret) as RefreshTokenPayload;
+  if (payload.type !== "refresh") {
+    throw new Error("Invalid token type");
+  }
+  return payload;
 }
 
 export function hashToken(token: string): string {

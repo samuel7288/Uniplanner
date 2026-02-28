@@ -6,7 +6,13 @@ import { useTheme, type ThemePreset } from "../context/ThemeContext";
 import { useBrowserNotifications } from "../hooks/useBrowserNotifications";
 import { api, getErrorMessage } from "../lib/api";
 import { AchievementsResponseSchema, SettingsPreferencesSchema, UserSchema } from "../lib/schemas";
-import type { AchievementsResponse } from "../lib/types";
+import type {
+  AchievementsResponse,
+  Course,
+  StudyGroupCalendarEvent,
+  StudyGroupMember,
+  StudyGroupSummary,
+} from "../lib/types";
 import { Alert, Button, Card, Field, PageTitle, TextInput } from "../components/UI";
 
 const PRESETS: { id: ThemePreset; label: string; brand: string; accent: string }[] = [
@@ -57,6 +63,22 @@ export function SettingsPage() {
   });
   const [googleCalendarLoading, setGoogleCalendarLoading] = useState(true);
   const [googleCalendarSyncing, setGoogleCalendarSyncing] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [studyGroups, setStudyGroups] = useState<StudyGroupSummary[]>([]);
+  const [studyGroupsLoading, setStudyGroupsLoading] = useState(true);
+  const [groupEventsLoading, setGroupEventsLoading] = useState(false);
+  const [groupMembersLoading, setGroupMembersLoading] = useState(false);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [invitingGroupId, setInvitingGroupId] = useState(0);
+  const [removingMemberId, setRemovingMemberId] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState(0);
+  const [groupEvents, setGroupEvents] = useState<StudyGroupCalendarEvent[]>([]);
+  const [groupMembers, setGroupMembers] = useState<StudyGroupMember[]>([]);
+  const [groupForm, setGroupForm] = useState({
+    name: "",
+    courseId: "",
+  });
+  const [inviteEmailByGroup, setInviteEmailByGroup] = useState<Record<number, string>>({});
 
   const iosPushNeedsStandalone = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -68,6 +90,11 @@ export function SettingsPage() {
       (navigator as Navigator & { standalone?: boolean }).standalone === true;
     return !standalone;
   }, []);
+
+  const selectedGroup = useMemo(
+    () => studyGroups.find((group) => group.id === selectedGroupId) ?? null,
+    [selectedGroupId, studyGroups],
+  );
 
   async function loadGoogleCalendarStatus() {
     setGoogleCalendarLoading(true);
@@ -132,6 +159,133 @@ export function SettingsPage() {
     }
   }
 
+  async function loadCourses() {
+    try {
+      const response = await api.get<Course[]>("/courses");
+      setCourses(response.data);
+    } catch {
+      setCourses([]);
+    }
+  }
+
+  async function loadStudyGroups() {
+    setStudyGroupsLoading(true);
+    try {
+      const response = await api.get<{ items: StudyGroupSummary[] }>("/groups");
+      setStudyGroups(response.data.items);
+    } catch {
+      setStudyGroups([]);
+    } finally {
+      setStudyGroupsLoading(false);
+    }
+  }
+
+  async function loadGroupCalendar(groupId: number) {
+    setGroupEventsLoading(true);
+    try {
+      const response = await api.get<{ events: StudyGroupCalendarEvent[] }>(`/groups/${groupId}/calendar`);
+      setGroupEvents(response.data.events);
+    } catch (err) {
+      setGroupEvents([]);
+      setError(getErrorMessage(err));
+    } finally {
+      setGroupEventsLoading(false);
+    }
+  }
+
+  async function loadGroupMembers(groupId: number) {
+    setGroupMembersLoading(true);
+    try {
+      const response = await api.get<{ items: StudyGroupMember[] }>(`/groups/${groupId}/members`);
+      setGroupMembers(response.data.items);
+    } catch (err) {
+      setGroupMembers([]);
+      setError(getErrorMessage(err));
+    } finally {
+      setGroupMembersLoading(false);
+    }
+  }
+
+  async function createStudyGroup() {
+    const name = groupForm.name.trim();
+    if (!name) {
+      setError("Escribe un nombre para el grupo");
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setCreatingGroup(true);
+    try {
+      const response = await api.post<{ id: number }>("/groups", {
+        name,
+        courseId: groupForm.courseId || null,
+      });
+      setGroupForm({ name: "", courseId: "" });
+      setMessage("Grupo creado.");
+      await loadStudyGroups();
+      setSelectedGroupId(response.data.id);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setCreatingGroup(false);
+    }
+  }
+
+  async function inviteMember(groupId: number) {
+    const email = (inviteEmailByGroup[groupId] || "").trim();
+    if (!email) {
+      setError("Escribe un email valido para invitar");
+      return;
+    }
+
+    setError("");
+    setMessage("");
+    setInvitingGroupId(groupId);
+    try {
+      await api.post(`/groups/${groupId}/invite`, { email });
+      setInviteEmailByGroup((prev) => ({ ...prev, [groupId]: "" }));
+      setMessage("Invitacion enviada.");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setInvitingGroupId(0);
+    }
+  }
+
+  async function removeMember(groupId: number, member: StudyGroupMember) {
+    const confirmed = window.confirm(`Remover a ${member.name} del grupo?`);
+    if (!confirmed) return;
+
+    setError("");
+    setMessage("");
+    setRemovingMemberId(member.userId);
+    try {
+      await api.delete(`/groups/${groupId}/members/${member.userId}`);
+      setMessage("Miembro removido.");
+      await Promise.all([loadStudyGroups(), loadGroupMembers(groupId), loadGroupCalendar(groupId)]);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setRemovingMemberId("");
+    }
+  }
+
+  async function acceptGroupInvite(token: string) {
+    setError("");
+    setMessage("");
+    try {
+      const response = await api.get<{ accepted: boolean; group: { id: number; name: string } }>(`/invites/${token}`);
+      setMessage(`Te uniste al grupo "${response.data.group.name}".`);
+      await loadStudyGroups();
+      setSelectedGroupId(response.data.group.id);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      navigate("/settings", { replace: true });
+    }
+  }
+
   useEffect(() => {
     if (!user) return;
     setProfile({
@@ -185,7 +339,35 @@ export function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    void loadCourses();
+    void loadStudyGroups();
+  }, []);
+
+  useEffect(() => {
+    if (studyGroups.length === 0) {
+      setSelectedGroupId(0);
+      setGroupEvents([]);
+      setGroupMembers([]);
+      return;
+    }
+    if (!studyGroups.some((group) => group.id === selectedGroupId)) {
+      setSelectedGroupId(studyGroups[0].id);
+    }
+  }, [selectedGroupId, studyGroups]);
+
+  useEffect(() => {
+    if (!selectedGroupId) return;
+    void Promise.all([loadGroupCalendar(selectedGroupId), loadGroupMembers(selectedGroupId)]);
+  }, [selectedGroupId]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const inviteToken = params.get("groupInvite");
+    if (inviteToken) {
+      void acceptGroupInvite(inviteToken);
+      return;
+    }
+
     const status = params.get("googleCalendar");
     if (!status) return;
 
@@ -478,6 +660,177 @@ export function SettingsPage() {
             </div>
           </>
         )}
+      </Card>
+
+      <Card className="space-y-4">
+        <h2 className="font-display text-lg font-semibold text-ink-900 dark:text-ink-100">
+          Grupos de estudio
+        </h2>
+        <p className="text-sm text-ink-600 dark:text-ink-400">
+          Crea grupos, invita companeros por email y comparte solo fechas de examenes y entregas.
+        </p>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3 rounded-2xl border border-ink-200 bg-white/70 p-4 dark:border-ink-700 dark:bg-[var(--surface)]/60">
+            <h3 className="text-sm font-semibold text-ink-800 dark:text-ink-200">Crear grupo</h3>
+            <Field label="Nombre del grupo">
+              <TextInput
+                value={groupForm.name}
+                onChange={(event) => setGroupForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="Ej. Algebra 2 - Equipo A"
+              />
+            </Field>
+            <Field label="Materia (opcional)">
+              <select
+                className="w-full rounded-xl border border-ink-300 bg-white px-3 py-2 text-sm text-ink-700 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-200"
+                value={groupForm.courseId}
+                onChange={(event) => setGroupForm((prev) => ({ ...prev, courseId: event.target.value }))}
+              >
+                <option value="">Sin materia fija</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Button type="button" onClick={() => void createStudyGroup()} disabled={creatingGroup}>
+              {creatingGroup ? "Creando..." : "Crear grupo"}
+            </Button>
+
+            <div className="space-y-2 pt-2">
+              <p className="text-sm font-semibold text-ink-800 dark:text-ink-200">Mis grupos</p>
+              {studyGroupsLoading ? (
+                <p className="text-sm text-ink-500 dark:text-ink-400">Cargando grupos...</p>
+              ) : studyGroups.length === 0 ? (
+                <p className="text-sm text-ink-500 dark:text-ink-400">Aun no perteneces a ningun grupo.</p>
+              ) : (
+                studyGroups.map((group) => (
+                  <button
+                    key={group.id}
+                    type="button"
+                    className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
+                      selectedGroupId === group.id
+                        ? "border-brand-400 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/20 dark:text-brand-300"
+                        : "border-ink-200 bg-white text-ink-700 hover:border-ink-300 dark:border-ink-700 dark:bg-[var(--surface)] dark:text-ink-300 dark:hover:border-ink-500"
+                    }`}
+                    onClick={() => setSelectedGroupId(group.id)}
+                  >
+                    <p className="font-semibold">{group.name}</p>
+                    <p className="text-xs opacity-80">
+                      {group.courseName ? `${group.courseName} • ` : ""}
+                      {group.membersCount} miembro(s) • rol: {group.role}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-2xl border border-ink-200 bg-white/70 p-4 dark:border-ink-700 dark:bg-[var(--surface)]/60">
+            {!selectedGroup ? (
+              <p className="text-sm text-ink-500 dark:text-ink-400">
+                Selecciona un grupo para ver miembros y calendario compartido.
+              </p>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm font-semibold text-ink-800 dark:text-ink-200">{selectedGroup.name}</p>
+                  <p className="text-xs text-ink-500 dark:text-ink-400">
+                    Rol: {selectedGroup.role} | miembros: {selectedGroup.membersCount}
+                  </p>
+                </div>
+
+                {selectedGroup.role === "admin" && (
+                  <div className="space-y-2 rounded-xl border border-ink-200 bg-ink-50/70 p-3 dark:border-ink-700 dark:bg-ink-800/40">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-500 dark:text-ink-400">
+                      Invitar miembro
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <TextInput
+                        type="email"
+                        placeholder="email@universidad.edu"
+                        value={inviteEmailByGroup[selectedGroup.id] || ""}
+                        onChange={(event) =>
+                          setInviteEmailByGroup((prev) => ({
+                            ...prev,
+                            [selectedGroup.id]: event.target.value,
+                          }))
+                        }
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => void inviteMember(selectedGroup.id)}
+                        disabled={invitingGroupId === selectedGroup.id}
+                      >
+                        {invitingGroupId === selectedGroup.id ? "Enviando..." : "Invitar"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-ink-800 dark:text-ink-200">Miembros</p>
+                  {groupMembersLoading ? (
+                    <p className="text-sm text-ink-500 dark:text-ink-400">Cargando miembros...</p>
+                  ) : groupMembers.length === 0 ? (
+                    <p className="text-sm text-ink-500 dark:text-ink-400">No hay miembros en este grupo.</p>
+                  ) : (
+                    groupMembers.map((member) => (
+                      <div
+                        key={member.userId}
+                        className="flex items-center justify-between rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm dark:border-ink-700 dark:bg-[var(--surface)]"
+                      >
+                        <div>
+                          <p className="font-medium text-ink-800 dark:text-ink-200">{member.name}</p>
+                          <p className="text-xs text-ink-500 dark:text-ink-400">
+                            {member.email} | {member.role}
+                          </p>
+                        </div>
+                        {selectedGroup.role === "admin" && member.userId !== user?.id && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => void removeMember(selectedGroup.id, member)}
+                            disabled={removingMemberId === member.userId}
+                          >
+                            {removingMemberId === member.userId ? "Removiendo..." : "Remover"}
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-ink-800 dark:text-ink-200">Calendario compartido</p>
+                  {groupEventsLoading ? (
+                    <p className="text-sm text-ink-500 dark:text-ink-400">Cargando eventos...</p>
+                  ) : groupEvents.length === 0 ? (
+                    <p className="text-sm text-ink-500 dark:text-ink-400">
+                      Aun no hay examenes o entregas compartidas.
+                    </p>
+                  ) : (
+                    <div className="max-h-56 space-y-2 overflow-auto pr-1">
+                      {groupEvents.slice(0, 20).map((event) => (
+                        <div
+                          key={event.id}
+                          className="rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm dark:border-ink-700 dark:bg-[var(--surface)]"
+                        >
+                          <p className="font-medium text-ink-800 dark:text-ink-200">{event.title}</p>
+                          <p className="text-xs text-ink-500 dark:text-ink-400">
+                            {new Date(event.start).toLocaleString()} | {event.sourceUserName}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </Card>
 
       <Card className="max-w-xl space-y-4">

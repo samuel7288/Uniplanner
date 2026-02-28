@@ -11,7 +11,7 @@ import { api, getErrorMessage } from "../lib/api";
 import { exportToPDF, getCurrentSemesterLabel, sanitizeFilenamePart } from "../utils/exportPDF";
 import type { CalendarEvent, Course } from "../lib/types";
 
-const eventTypes = ["class", "assignment", "exam", "milestone"] as const;
+const eventTypes = ["class", "assignment", "exam", "milestone", "group"] as const;
 
 function getEntityIdFromEvent(event: CalendarEvent): string | null {
   if (event.type === "assignment" && event.id.startsWith("assignment-")) {
@@ -45,9 +45,9 @@ export function CalendarPage() {
     () =>
       events.map((event) => ({
         ...event,
-        editable: event.type !== "class",
+        editable: event.type !== "class" && event.type !== "group",
         classNames:
-          event.type === "class"
+          event.type === "class" || event.type === "group"
             ? ["calendar-event-locked"]
             : ["calendar-event-draggable"],
       })),
@@ -126,6 +126,8 @@ export function CalendarPage() {
       await api.patch(`/projects/milestones/${entityId}`, {
         dueDate: nextStartISO,
       });
+    } else if (event.type === "group") {
+      throw new Error("Los eventos de grupo se editan desde la vista de grupos");
     } else {
       throw new Error("Las clases recurrentes se editan desde Materias > Horarios");
     }
@@ -177,9 +179,9 @@ export function CalendarPage() {
   async function handleEventDrop(info: EventDropArg) {
     const eventType = info.event.extendedProps.type as CalendarEvent["type"] | undefined;
 
-    if (!eventType || eventType === "class") {
+    if (!eventType || eventType === "class" || eventType === "group") {
       info.revert();
-      toast.error("Las clases recurrentes se editan desde Materias > Horarios");
+      toast.error("Este evento se edita desde su modulo de origen");
       return;
     }
 
@@ -218,8 +220,8 @@ export function CalendarPage() {
   async function shiftEventByDays(eventId: string, days: number) {
     const event = events.find((item) => item.id === eventId);
     if (!event) return;
-    if (event.type === "class") {
-      toast.error("Las clases recurrentes se editan en Horario");
+    if (event.type === "class" || event.type === "group") {
+      toast.error("Este evento se edita desde su modulo de origen");
       return;
     }
 
@@ -347,7 +349,7 @@ export function CalendarPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => void shiftSelectedEvent(-1)}
-                    disabled={selectedEvent.type === "class" || !!syncingEventId}
+                    disabled={selectedEvent.type === "class" || selectedEvent.type === "group" || !!syncingEventId}
                   >
                     -1 dia
                   </Button>
@@ -356,7 +358,7 @@ export function CalendarPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => void shiftSelectedEvent(1)}
-                    disabled={selectedEvent.type === "class" || !!syncingEventId}
+                    disabled={selectedEvent.type === "class" || selectedEvent.type === "group" || !!syncingEventId}
                   >
                     +1 dia
                   </Button>
@@ -417,7 +419,7 @@ export function CalendarPage() {
                 eventAllow={(_dropInfo, draggedEvent) => {
                   if (!draggedEvent) return false;
                   const type = draggedEvent.extendedProps.type as CalendarEvent["type"] | undefined;
-                  return type !== "class";
+                  return type !== "class" && type !== "group";
                 }}
                 height="auto"
               />

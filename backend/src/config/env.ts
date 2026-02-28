@@ -34,6 +34,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: optionalNonEmptyString,
   GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
   GOOGLE_REDIRECT_URI: optionalNonEmptyString,
+  ANTHROPIC_API_KEY: optionalNonEmptyString,
   REDIS_URL: z.string().default("redis://localhost:6379"),
   REDIS_PASSWORD: z.string().min(16, "REDIS_PASSWORD must be at least 16 chars").optional(),
 }).superRefine((data, ctx) => {

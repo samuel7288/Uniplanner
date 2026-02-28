@@ -1,5 +1,5 @@
-import { randomUUID } from "crypto";
 import { endOfWeek, startOfWeek } from "date-fns";
+import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { evaluateAndUnlockAchievements } from "./achievementsService";
 import type { CreateStudySessionBody } from "../validators/studySessionsValidators";
@@ -12,40 +12,6 @@ function createHttpError(status: number, message: string): HttpError {
   return error;
 }
 
-let studySessionsTableReady = false;
-
-async function ensureStudySessionsTable(): Promise<void> {
-  if (studySessionsTableReady) return;
-
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "StudySession" (
-      "id" TEXT PRIMARY KEY,
-      "userId" TEXT NOT NULL,
-      "courseId" TEXT NOT NULL,
-      "startTime" TIMESTAMP(3) NOT NULL,
-      "endTime" TIMESTAMP(3) NOT NULL,
-      "duration" INTEGER NOT NULL,
-      "source" TEXT NOT NULL DEFAULT 'manual',
-      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT "StudySession_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-      CONSTRAINT "StudySession_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE CASCADE ON UPDATE CASCADE
-    )
-  `);
-
-  await prisma.$executeRawUnsafe(
-    `ALTER TABLE "StudySession" ADD COLUMN IF NOT EXISTS "source" TEXT NOT NULL DEFAULT 'manual'`,
-  );
-
-  await prisma.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS "StudySession_userId_startTime_idx" ON "StudySession"("userId", "startTime")`,
-  );
-  await prisma.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS "StudySession_courseId_idx" ON "StudySession"("courseId")`,
-  );
-
-  studySessionsTableReady = true;
-}
-
 function resolveDurationInMinutes(payload: CreateStudySessionBody): number {
   if (typeof payload.duration === "number") return payload.duration;
 
@@ -56,8 +22,6 @@ function resolveDurationInMinutes(payload: CreateStudySessionBody): number {
 }
 
 export async function createStudySession(userId: string, payload: CreateStudySessionBody) {
-  await ensureStudySessionsTable();
-
   const course = await prisma.course.findFirst({
     where: {
       id: payload.courseId,
@@ -75,70 +39,71 @@ export async function createStudySession(userId: string, payload: CreateStudySes
   if (!course) throw createHttpError(404, "Course not found");
 
   const duration = resolveDurationInMinutes(payload);
-  const id = randomUUID();
-  const createdAt = new Date();
+  const session = await prisma.studySession.create({
+    data: {
+      userId,
+      courseId: course.id,
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      duration,
+      source: payload.source,
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          color: true,
+        },
+      },
+    },
+  });
 
-  await prisma.$executeRaw`
-    INSERT INTO "StudySession" ("id", "userId", "courseId", "startTime", "endTime", "duration", "source", "createdAt")
-    VALUES (${id}, ${userId}, ${course.id}, ${payload.startTime}, ${payload.endTime}, ${duration}, ${payload.source}, ${createdAt})
-  `;
-
-  await evaluateAndUnlockAchievements(userId).catch(() => {
-    // No bloquea la sesion si el sistema de logros falla de forma aislada.
+  await evaluateAndUnlockAchievements(userId).catch((err: unknown) => {
+    logger.error({ err, userId }, "achievements evaluation failed");
   });
 
   return {
-    id,
-    userId,
-    courseId: course.id,
-    startTime: payload.startTime.toISOString(),
-    endTime: payload.endTime.toISOString(),
-    duration,
-    source: payload.source,
-    createdAt: createdAt.toISOString(),
-    course,
+    id: session.id,
+    userId: session.userId,
+    courseId: session.courseId,
+    startTime: session.startTime.toISOString(),
+    endTime: session.endTime.toISOString(),
+    duration: session.duration,
+    source: session.source,
+    createdAt: session.createdAt.toISOString(),
+    course: session.course,
   };
 }
 
 export async function listCurrentWeekSessions(userId: string) {
-  await ensureStudySessionsTable();
-
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
-  const sessions = await prisma.$queryRaw<
-    Array<{
-      id: string;
-      courseId: string;
-      duration: number;
-      startTime: Date;
-      endTime: Date;
-      source: string;
-      courseRefId: string;
-      courseName: string;
-      courseCode: string;
-      courseColor: string | null;
-    }>
-  >`
-    SELECT
-      s."id",
-      s."courseId",
-      s."duration",
-      s."startTime",
-      s."endTime",
-      s."source",
-      c."id" AS "courseRefId",
-      c."name" AS "courseName",
-      c."code" AS "courseCode",
-      c."color" AS "courseColor"
-    FROM "StudySession" s
-    INNER JOIN "Course" c ON c."id" = s."courseId"
-    WHERE s."userId" = ${userId}
-      AND s."startTime" >= ${weekStart}
-      AND s."startTime" <= ${weekEnd}
-    ORDER BY s."startTime" DESC
-  `;
+  const sessions = await prisma.studySession.findMany({
+    where: {
+      userId,
+      startTime: {
+        gte: weekStart,
+        lte: weekEnd,
+      },
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          color: true,
+        },
+      },
+    },
+    orderBy: {
+      startTime: "desc",
+    },
+  });
 
   const byCourseMap = new Map<
     string,
@@ -161,10 +126,10 @@ export async function listCurrentWeekSessions(userId: string) {
     }
 
     byCourseMap.set(session.courseId, {
-      courseId: session.courseRefId,
-      courseName: session.courseName,
-      code: session.courseCode,
-      color: session.courseColor ?? null,
+      courseId: session.course.id,
+      courseName: session.course.name,
+      code: session.course.code,
+      color: session.course.color ?? null,
       totalMinutes: session.duration,
       sessionCount: 1,
     });
@@ -186,10 +151,10 @@ export async function listCurrentWeekSessions(userId: string) {
       endTime: session.endTime.toISOString(),
       source: session.source,
       course: {
-        id: session.courseRefId,
-        name: session.courseName,
-        code: session.courseCode,
-        color: session.courseColor,
+        id: session.course.id,
+        name: session.course.name,
+        code: session.course.code,
+        color: session.course.color,
       },
     })),
   };

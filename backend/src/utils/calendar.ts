@@ -20,7 +20,7 @@ type TimedEvent = {
   description?: string | null;
   location?: string | null;
   color?: string | null;
-  type: "assignment" | "exam" | "milestone" | "class";
+  type: "assignment" | "exam" | "milestone" | "class" | "group";
 };
 
 function parseTimeToParts(time: string): [number, number] {

@@ -2,6 +2,10 @@ import { SessionModality } from "@prisma/client";
 import { z } from "zod";
 import { requestSchema } from "../lib/validate";
 
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{6}$/, "color must be a valid hex color (e.g. #a1b2c3)");
+
 const baseClassSessionSchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -28,7 +32,7 @@ const createCourseBodySchema = z.object({
   code: z.string().min(2).max(100),
   teacher: z.string().max(255).optional().nullable(),
   credits: z.number().int().min(0).optional().nullable(),
-  color: z.string().max(32).optional().nullable(),
+  color: hexColorSchema.optional().nullable(),
   semester: z.string().max(100).optional().nullable(),
   classSessions: z.array(classSessionSchema).optional(),
 });
@@ -38,7 +42,7 @@ const updateCourseBodySchema = z.object({
   code: z.string().min(2).max(100).optional(),
   teacher: z.string().max(255).optional().nullable(),
   credits: z.number().int().min(0).optional().nullable(),
-  color: z.string().max(32).optional().nullable(),
+  color: hexColorSchema.optional().nullable(),
   semester: z.string().max(100).optional().nullable(),
 });
 
@@ -96,7 +100,7 @@ const importCourseRowSchema = z.object({
   code: z.string().min(2).max(100),
   teacher: z.string().max(255).optional().nullable(),
   credits: z.number().int().min(0).optional().nullable(),
-  color: z.string().max(32).optional().nullable(),
+  color: hexColorSchema.optional().nullable(),
   semester: z.string().max(100).optional().nullable(),
   sessions: z.array(importSessionSchema).optional(),
 });
